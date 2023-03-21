@@ -13,11 +13,11 @@ use serde_json; // 1.0.64
 enum TabryOpt {
   #[serde(rename="file")]
   File,
-  #[serde(rename="file")]
+  #[serde(rename="dir")]
   Dir,
   #[serde(rename="const")]
   Const { value: String },
-  #[serde(rename="const")]
+  #[serde(rename="shell")]
   Shell { value: String },
   #[serde(rename="include")]
   Include { value: String },
@@ -60,7 +60,17 @@ enum TabryFlag {
         required: bool,
     }
 }
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TabryConcreteSub {
+    name: Option<String>,
+    description: Option<String>,
+    #[serde(default)]
+    args: Vec<TabryArg>,
+    #[serde(default)]
+    flags: Vec<TabryFlag>,
+    #[serde(default)]
+    subs: Vec<TabrySub>
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -68,22 +78,13 @@ enum TabrySub {
     TabryIncludeArg {
         include: String
     },
-    TabryConcreteSub {
-        name: Option<String>,
-        description: Option<String>,
-        #[serde(default)]
-        args: Vec<TabryArg>,
-        #[serde(default)]
-        flags: Vec<TabryFlag>,
-        #[serde(default)]
-        subs: Vec<TabrySub>
-    }
+    TabryConcreteSub(TabryConcreteSub)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct TabryConf {
     cmd: String,
-    main: TabrySub,
+    main: TabryConcreteSub,
 }
 
 fn main() {
