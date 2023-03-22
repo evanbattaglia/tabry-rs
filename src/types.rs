@@ -54,14 +54,14 @@ pub enum TabryFlag {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabryConcreteSub {
-    name: Option<String>,
-    description: Option<String>,
+    pub name: Option<String>,
+    pub description: Option<String>,
     #[serde(default)]
-    args: Vec<TabryArg>,
+    pub args: Vec<TabryArg>,
     #[serde(default)]
-    flags: Vec<TabryFlag>,
+    pub flags: Vec<TabryFlag>,
     #[serde(default)]
-    subs: Vec<TabrySub>,
+    pub subs: Vec<TabrySub>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,19 +74,19 @@ pub enum TabrySub {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabryArgInclude {
     #[serde(default)]
-    args: Vec<TabryArg>,
+    pub args: Vec<TabryArg>,
     #[serde(default)]
-    flags: Vec<TabryFlag>,
+    pub flags: Vec<TabryFlag>,
     #[serde(default)]
-    subs: Vec<TabrySub>,
+    pub subs: Vec<TabrySub>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabryConf {
-    cmd: String,
-    main: TabryConcreteSub,
+    pub cmd: String,
+    pub main: TabryConcreteSub,
     #[serde(default)]
-    arg_includes: HashMap<String, TabryArgInclude>,
+    pub arg_includes: HashMap<String, TabryArgInclude>,
     #[serde(default)]
-    option_includes: HashMap<String, Vec<TabryOpt>>,
+    pub option_includes: HashMap<String, Vec<TabryOpt>>,
 }

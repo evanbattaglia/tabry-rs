@@ -25,14 +25,64 @@ struct MachineState {
 }
 
 struct Machine {
-    // TODO: this isn't modified. investigate "named lifetime parameters?"
-    conf: types::TabryConf,
+    config: ConfigWrapper,
     state: MachineState,
 }
 
+struct ConfigWrapper {
+    // TODO: this isn't modified. investigate "named lifetime parameters?" that would make sure we
+    // couldn't modify it in here too which would be nice
+    conf: types::TabryConf
+}
+
+impl ConfigWrapper {
+    // In the future config wrapper will have a cache
+
+    // TODO errors
+    fn dig_sub(&mut self, subs_vec: &Vec<String>) -> Option<&types::TabryConcreteSub> {
+        let current = &self.conf.main;
+
+        for sub in subs_vec {
+            // TODO unwrap -> really handle error
+            let currents_concrete_subs : Vec<&types::TabryConcreteSub> = self.flatten_subs(&current.subs).unwrap();
+            println!("{:?}", currents_concrete_subs);
+            //currents_concrete_subs.iter().find(|&&x| x.name == sub);
+            //if (currents_concrete_subs.includes...
+        }
+        return None;
+    }
+
+    fn flatten_subs<'a>(&'a self, subs: &'a Vec<types::TabrySub>) ->
+        Result<Vec<&types::TabryConcreteSub>, &'static str> {
+
+        let vecofvecs = subs.iter().map(|sub|
+            match sub {
+                types::TabrySub::TabryIncludeArg { include } => {
+                    // Lookup include, which may return an error
+                    let inc = self.conf.arg_includes.get(include).ok_or("Error")?;
+                    // Flatten the include's subs recursively (which may return an error)
+                    self.flatten_subs(&inc.subs)
+                },
+                types::TabrySub::TabryConcreteSub(s) =>
+                    // This is a concrete sub, add it
+                    Ok(vec![s])
+            }
+        ).collect::<Result<Vec<_>,_>>()?;
+
+        // collect() will return an error if there were one, so now we just have flatten the
+        // vectors
+        Ok(vecofvecs.into_iter().flatten().collect::<Vec<_>>())
+    }
+
+}
+
 impl Machine {
+    // TODO: want to be able to pass a reference in here. need named lifetime. or can clone it...
     fn new(conf: types::TabryConf) -> Machine {
-        Machine { conf: conf, state: MachineState::default() }
+        Machine {
+            config: ConfigWrapper { conf },
+            state: MachineState::default()
+        }
     }
 
     fn next(&mut self, token: &String) -> Result<(), &'static str> {
