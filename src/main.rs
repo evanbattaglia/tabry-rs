@@ -1,386 +1,121 @@
-use serde::{Serialize, Deserialize}; // 1.0.124
-use serde_json; // 1.0.64
+use std::collections::HashMap;
+use std::mem::swap;
 
-//
+mod example_config_json;
+mod types;
 
-//enum Option {
-//    OptionFile(),
-//    OptionConst
-//}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-enum TabryOpt {
-  #[serde(rename="file")]
-  File,
-  #[serde(rename="dir")]
-  Dir,
-  #[serde(rename="const")]
-  Const { value: String },
-  #[serde(rename="shell")]
-  Shell { value: String },
-  #[serde(rename="include")]
-  Include { value: String },
+#[derive(Debug, Default)]
+enum MachineStateMode {
+    #[default]
+    Subcommand,
+    Flagarg {
+        current_flag: String,
+    },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-enum TabryArg {
-    TabryIncludeArg {
-        include: String
-    },
-    TabryConcreteArg {
-        name: Option<String>,
-        #[serde(default)]
-        options: Vec<TabryOpt>,
-        #[serde(default)]
-        optional: bool,
-        #[serde(default)]
-        varargs: bool,
+#[derive(Debug, Default)]
+struct MachineState {
+    mode: MachineStateMode,
+    subcommand_stack: Vec<String>,
+    flags: HashMap<String, bool>,
+    flag_args: HashMap<String, String>,
+    args: Vec<String>,
+    help: bool,
+    dashdash: bool,
+}
+
+struct Machine {
+    // TODO: this isn't modified. investigate "named lifetime parameters?"
+    conf: types::TabryConf,
+    state: MachineState,
+}
+
+impl Machine {
+    fn new(conf: types::TabryConf) -> Machine {
+        Machine { conf: conf, state: MachineState::default() }
     }
-}
 
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-enum TabryFlag {
-    TabryIncludeFlag {
-        include: String
-    },
-    TabryConcreteFlag {
-        name: String,
-        #[serde(default)]
-        aliases: Vec<String>,
-        #[serde(default)]
-        options: Vec<TabryOpt>,
-        // TODO: could break up into flagarg and regular flag
-        #[serde(default)]
-        arg: bool,
-        #[serde(default)]
-        required: bool,
+    fn next(&mut self, token: &String) -> Result<(), &'static str> {
+        match self.state.mode {
+            MachineStateMode::Subcommand => self.match_mode_subcommand(token),
+            MachineStateMode::Flagarg { .. } => Ok(self.match_mode_flagarg(token)),
+        }
     }
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct TabryConcreteSub {
-    name: Option<String>,
-    description: Option<String>,
-    #[serde(default)]
-    args: Vec<TabryArg>,
-    #[serde(default)]
-    flags: Vec<TabryFlag>,
-    #[serde(default)]
-    subs: Vec<TabrySub>
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-enum TabrySub {
-    TabryIncludeArg {
-        include: String
-    },
-    TabryConcreteSub(TabryConcreteSub)
-}
+    // TODO: error should be some class probably instead of a string
+    fn match_mode_subcommand(&mut self, token: &String) -> Result<(), &'static str> {
+        if self.match_subcommand(token)?
+            || self.match_dashdash(token)
+            || self.match_flag(token)?
+            || self.match_help(token)
+        {
+            Ok(())
+        } else {
+            self.match_arg(token)
+        }
+    }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct TabryConf {
-    cmd: String,
-    main: TabryConcreteSub,
+    fn current_sub(&self) {
+    }
+
+    fn match_subcommand(&mut self, token: &String) -> Result<bool, &'static str> {
+        if self.state.args.is_empty() {
+            return Ok(false);
+        }
+
+        Ok(false)
+
+        // let found = flatten_subs(self.current_sub()?.subs).find(token)
+        // found.map( ... ).getOrElse(false)
+        // state.subcommand_stack << sub.name
+        // Tabry::Util.debug "MATCHED sub #{sub.name} ON token #{token.inspect}"
+        // true
+    }
+
+    fn match_dashdash(&mut self, token: &String) -> bool {
+        if !self.state.dashdash && token == "--" {
+            self.state.dashdash = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn match_flag(&mut self, token: &String) -> Result<bool, &'static str> {
+        return Ok(false);
+    }
+
+    fn match_help(&mut self, token: &String) -> bool {
+        if token == "help" {
+            self.state.help = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn match_arg(&mut self, token: &String) -> Result<(), &'static str> {
+        return Ok(());
+    }
+
+    fn match_mode_flagarg(&mut self, token: &String) {
+        // Set mode to subcommand and put string in flag_args
+        let mut mode = MachineStateMode::Subcommand;
+        swap(&mut mode, &mut self.state.mode);
+        let MachineStateMode::Flagarg { current_flag } = mode else { unreachable!() };
+        self.state.flag_args.insert(current_flag, token.clone());
+    }
 }
 
 fn main() {
-    let conf_json = r#"{
-        "cmd": "vehicles",
-        "main": {
-          "description": "Build and control vehicles",
-          "flags": [
-            {
-              "name": "verbose",
-              "aliases": [
-                "v"
-              ],
-              "description": "Give more details in output"
-            }
-          ],
-          "subs": [
-            {
-              "name": "build",
-              "args": [
-                {
-                  "name": "vehicle-types",
-                  "options": [
-                    {
-                      "type": "include",
-                      "value": "vehicle-type-arg"
-                    }
-                  ],
-                  "varargs": true
-                }
-              ]
-            },
-            {
-              "name": "list-vehicles"
-            },
-            {
-              "name": "move",
-              "subs": [
-                {
-                  "name": "go",
-                  "aliases": [
-                    "g"
-                  ],
-                  "args": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ],
-                  "flags": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ],
-                  "subs": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ]
-                },
-                {
-                  "name": "stop",
-                  "aliases": [
-                    "s"
-                  ],
-                  "args": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ],
-                  "flags": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ],
-                  "subs": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ]
-                },
-                {
-                  "name": "crash",
-                  "args": [
-                    {
-                      "include": "vehicle-type-arg"
-                    },
-                    {
-                      "name": "crash-into-vehicle",
-                      "optional": true,
-                      "options": [
-                        {
-                          "type": "include",
-                          "value": "vehicle-type-arg"
-                        }
-                      ],
-                      "description": "Crash into another vehicle, default is to crash into a fire hydrant"
-                    }
-                  ],
-                  "flags": [
-                    {
-                      "include": "vehicle-type-arg"
-                    },
-                    {
-                      "name": "speed",
-                      "arg": true,
-                      "options": [
-                        {
-                          "type": "shell",
-                          "value": "echo fast && echo slow"
-                        }
-                      ]
-                    },
-                    {
-                      "name": "dry-run",
-                      "description": "Don't actually crash, just simulate it"
-                    },
-                    {
-                      "name": "output-to-file",
-                      "aliases": [
-                        "f"
-                      ],
-                      "arg": true,
-                      "options": [
-                        {
-                          "type": "file"
-                        },
-                        {
-                          "type": "const",
-                          "value": "-"
-                        }
-                      ]
-                    },
-                    {
-                      "name": "output-to-directory",
-                      "aliases": [
-                        "dir",
-                        "d"
-                      ],
-                      "arg": true,
-                      "options": [
-                        {
-                          "type": "dir"
-                        }
-                      ]
-                    }
-                  ],
-                  "subs": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ]
-                },
-                {
-                  "name": "freeway-crash",
-                  "aliases": [
-                    "pileup",
-                    "p"
-                  ],
-                  "args": [
-                    {
-                      "include": "vehicle-type-arg"
-                    },
-                    {
-                      "name": "crash-into-vehicles",
-                      "optional": true,
-                      "options": [
-                        {
-                          "type": "include",
-                          "value": "vehicle-type-arg"
-                        }
-                      ],
-                      "varargs": true,
-                      "title": "vehicle to crash into",
-                      "description": "List of vehicles to crash into. Optional, leave out for a '1 car pileup' -- just crashing into center divider"
-                    }
-                  ],
-                  "flags": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ],
-                  "subs": [
-                    {
-                      "include": "vehicle-type-arg"
-                    }
-                  ],
-                  "description": "Crash on the freeway (AKA a 'pile up')"
-                }
-              ]
-            },
-            {
-              "name": "sub-with-sub-or-arg",
-              "args": [
-                {
-                  "options": [
-                    {
-                      "type": "const",
-                      "value": "x"
-                    },
-                    {
-                      "type": "const",
-                      "value": "y"
-                    },
-                    {
-                      "type": "const",
-                      "value": "z"
-                    }
-                  ]
-                }
-              ],
-              "subs": [
-                {
-                  "name": "subsub"
-                }
-              ]
-            },
-            {
-              "name": "sub-with-sub-or-opt-arg",
-              "subs": [
-                {
-                  "name": "subsub"
-                }
-              ],
-              "args": [
-                {
-                  "optional": true
-                }
-              ]
-            },
-            {
-              "name": "sub-with-mandatory-flag",
-              "args": [
-                {
-                  "optional": true,
-                  "options": [
-                    {
-                      "type": "const",
-                      "value": "a"
-                    },
-                    {
-                      "type": "const",
-                      "value": "b"
-                    },
-                    {
-                      "type": "const",
-                      "value": "c"
-                    }
-                  ]
-                }
-              ],
-              "flags": [
-                {
-                  "name": "mandatory",
-                  "required": true,
-                  "arg": true
-                },
-                {
-                  "name": "verbose",
-                  "aliases": [
-                    "v"
-                  ],
-                  "arg": true
-                }
-              ]
-            }
-          ]
-        }
-    }"#;
-        // ,
-        // "arg_includes": {
-        //   "vehicle-type-arg": {
-        //     "args": [
-        //       {
-        //         "name": "vehicle-type",
-        //         "options": [
-        //           {
-        //             "type": "include",
-        //             "value": "vehicle-type"
-        //           }
-        //         ]
-        //       }
-        //     ]
-        //   }
-        // },
-        // "option_includes": {
-        //   "vehicle-type": [
-        //     {
-        //       "type": "const",
-        //       "value": "car"
-        //     },
-        //     {
-        //       "type": "const",
-        //       "value": "bike"
-        //     }
-        //   ]
-        // }
-    let conf: TabryConf = serde_json::from_str(conf_json).unwrap();
+    let mut machine = Machine::new(
+        serde_json::from_str(example_config_json::STR).unwrap()
+    );
 
+    let tokens = ["move", "go", "vehicle1"];
+    for token in tokens {
+        machine.next(&String::from(token)).unwrap();
+    }
+
+    println!("{:?}", machine.state.args);
 }
