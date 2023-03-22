@@ -55,6 +55,8 @@ pub enum TabryFlag {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabryConcreteSub {
     pub name: Option<String>,
+    #[serde(default)]
+    pub aliases: Vec<String>,
     pub description: Option<String>,
     #[serde(default)]
     pub args: Vec<TabryArg>,

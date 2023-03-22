@@ -1,10 +1,11 @@
+use std::fmt;
 use std::collections::HashMap;
 use std::mem::swap;
 
 mod example_config_json;
 mod types;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 enum MachineStateMode {
     #[default]
     Subcommand,
@@ -13,7 +14,7 @@ enum MachineStateMode {
     },
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct MachineState {
     mode: MachineStateMode,
     subcommand_stack: Vec<String>,
@@ -22,6 +23,37 @@ struct MachineState {
     args: Vec<String>,
     help: bool,
     dashdash: bool,
+}
+
+impl fmt::Debug for MachineState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut res = & mut f.debug_struct("MachineState");
+        // TODO: macro to add to all if not default
+        // except it doesn't work for vec... or bool, if serde_json is used...
+        // there might even be another way to just not show defaults
+        if !(self.mode == Default::default()) {
+            res = res.field("mode", &self.mode);
+        }
+        if !self.subcommand_stack.is_empty() {
+            res = res.field("subcommand_stack", &self.subcommand_stack);
+        }
+        if !(self.flags == Default::default()) {
+            res = res.field("flags", &self.flags);
+        }
+        if !(self.flag_args == Default::default()) {
+            res = res.field("flag_args", &self.flag_args);
+        }
+        if !self.args.is_empty() {
+            res = res.field("args", &self.args);
+        }
+        if self.help {
+            res = res.field("help", &self.help);
+        }
+        if self.dashdash {
+            res = res.field("dashdash", &self.dashdash);
+        }
+        res.finish()
+    }
 }
 
 struct Machine {
@@ -38,18 +70,27 @@ struct ConfigWrapper {
 impl ConfigWrapper {
     // In the future config wrapper will have a cache
 
-    // TODO errors
-    fn dig_sub(&mut self, subs_vec: &Vec<String>) -> Option<&types::TabryConcreteSub> {
-        let current = &self.conf.main;
+    fn dig_sub(&self, sub_names_vec: &Vec<String>) -> Result<&types::TabryConcreteSub, &'static str> {
+        let mut current = &self.conf.main;
 
-        for sub in subs_vec {
-            // TODO unwrap -> really handle error
-            let currents_concrete_subs : Vec<&types::TabryConcreteSub> = self.flatten_subs(&current.subs).unwrap();
-            println!("{:?}", currents_concrete_subs);
-            //currents_concrete_subs.iter().find(|&&x| x.name == sub);
-            //if (currents_concrete_subs.includes...
+        for name in sub_names_vec {
+            current = self.find_in_subs(&current.subs, name, false)?.ok_or("internal error: sub not found in dig sub")?;
         }
-        return None;
+
+        Ok(current)
+    }
+
+    fn find_in_subs<'a>(&'a self, subs: &'a Vec<types::TabrySub>, name: &String, check_aliases: bool)
+        -> Result<Option<&types::TabryConcreteSub>, &'static str> {
+        let concrete_subs : Vec<&types::TabryConcreteSub> = self.flatten_subs(subs)?;
+
+        for sub in concrete_subs {
+            let sub_name = sub.name.as_ref().ok_or("sub without name not valid except as main sub")?;
+            if name == sub_name || (check_aliases && sub.aliases.contains(name)) {
+                return Ok(Some(sub));
+            }
+        }
+        Ok(None)
     }
 
     fn flatten_subs<'a>(&'a self, subs: &'a Vec<types::TabrySub>) ->
@@ -105,21 +146,35 @@ impl Machine {
         }
     }
 
-    fn current_sub(&self) {
+
+    /*
+     * TODO using this doesn't work below
+    fn current_sub(&mut self) -> Result<&types::TabryConcreteSub, &'static str> {
+        self.config.dig_sub(&self.state.subcommand_stack)
     }
+    */
 
     fn match_subcommand(&mut self, token: &String) -> Result<bool, &'static str> {
-        if self.state.args.is_empty() {
+        if !self.state.args.is_empty() {
             return Ok(false);
         }
 
-        Ok(false)
+        // TODO using self.current_sub() causes weird borrow problem. But also want t
+        // make self.find_in_subs etc. be able to mutate self which it can't right now
+        // due to weird lifetime problem.
+        let sub_here = self.config.dig_sub(&self.state.subcommand_stack)?;
+        let subs_here = self.config.flatten_subs(&sub_here.subs);
 
-        // let found = flatten_subs(self.current_sub()?.subs).find(token)
-        // found.map( ... ).getOrElse(false)
-        // state.subcommand_stack << sub.name
-        // Tabry::Util.debug "MATCHED sub #{sub.name} ON token #{token.inspect}"
-        // true
+        if let Some(sub) = self.config.find_in_subs(&sub_here.subs, token, true)? {
+            let name = sub.name.as_ref().ok_or("sub must have name here")?;
+            self.state.subcommand_stack.push(name.clone());
+            self.log(format!("STEP subcommand, add {}", name));
+            // TODO log
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+
     }
 
     fn match_dashdash(&mut self, token: &String) -> bool {
@@ -145,6 +200,8 @@ impl Machine {
     }
 
     fn match_arg(&mut self, token: &String) -> Result<(), &'static str> {
+        self.log(format!("STEP fell back to argument {:?}", token));
+        self.state.args.push(token.clone());
         return Ok(());
     }
 
@@ -154,6 +211,10 @@ impl Machine {
         swap(&mut mode, &mut self.state.mode);
         let MachineStateMode::Flagarg { current_flag } = mode else { unreachable!() };
         self.state.flag_args.insert(current_flag, token.clone());
+    }
+
+    fn log(&self, msg: String) {
+        println!("{}; current state: {:?}", msg, self.state);
     }
 }
 
@@ -167,5 +228,5 @@ fn main() {
         machine.next(&String::from(token)).unwrap();
     }
 
-    println!("{:?}", machine.state.args);
+    println!("{:?}", machine.state);
 }
