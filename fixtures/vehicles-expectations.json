@@ -1,0 +1,351 @@
+{
+  "handles subcommands": [
+    [
+      "build"
+    ],
+    {
+      "subs": [
+        "build"
+      ],
+      "mode": "subcommand"
+    }
+  ],
+  "handles bogus subcommands": [
+    [
+      "bogus"
+    ],
+    {
+      "subs": [
+
+      ],
+      "args": [
+        "bogus"
+      ]
+    }
+  ],
+  "handles bogus subcommands of subcommands are treated as args": [
+    [
+      "move",
+      "bogus",
+      "bogus2"
+    ],
+    {
+      "subs": [
+        "move"
+      ],
+      "args": [
+        "bogus",
+        "bogus2"
+      ],
+      "mode": "subcommand"
+    }
+  ],
+  "handles subcommands of subcommands": [
+    [
+      "move",
+      "go"
+    ],
+    {
+      "subs": [
+        "move",
+        "go"
+      ]
+    }
+  ],
+  "handles subcommands aliases": [
+    [
+      "move",
+      "g"
+    ],
+    {
+      "subs": [
+        "move",
+        "go"
+      ]
+    }
+  ],
+  "handles argsuments": [
+    [
+      "build",
+      "arg1",
+      "arg2"
+    ],
+    {
+      "subs": [
+        "build"
+      ],
+      "args": [
+        "arg1",
+        "arg2"
+      ]
+    }
+  ],
+  "handles flags": [
+    [
+      "build",
+      "-v"
+    ],
+    {
+      "subs": [
+        "build"
+      ],
+      "flags": {
+        "verbose": true
+      },
+      "args": [
+
+      ],
+      "mode": "subcommand"
+    }
+  ],
+  "handles long flags": [
+    [
+      "--verbose",
+      "build"
+    ],
+    {
+      "subs": [
+        "build"
+      ],
+      "flags": {
+        "verbose": true
+      },
+      "args": [
+
+      ],
+      "mode": "subcommand"
+    }
+  ],
+  "handles flags interspersed with arguments": [
+    [
+      "move",
+      "-v",
+      "crash",
+      "arg1",
+      "--dry-run",
+      "arg2",
+      "arg3"
+    ],
+    {
+      "subs": [
+        "move",
+        "crash"
+      ],
+      "args": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "flags": {
+        "dry-run": true,
+        "verbose": true
+      },
+      "mode": "subcommand"
+    }
+  ],
+  "handles flags with an argument": [
+    [
+      "move",
+      "crash",
+      "--dry-run",
+      "arg1",
+      "-f",
+      "file",
+      "arg2",
+      "arg3"
+    ],
+    {
+      "subs": [
+        "move",
+        "crash"
+      ],
+      "args": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "flags": {
+        "dry-run": true,
+        "output-to-file": "file"
+      },
+      "mode": "subcommand"
+    }
+  ],
+  "handles double-dash to stop parsing of flags": [
+    [
+      "move",
+      "crash",
+      "--",
+      "--dry-run",
+      "arg1",
+      "-f",
+      "file",
+      "arg2",
+      "arg3"
+    ],
+    {
+      "subs": [
+        "move",
+        "crash"
+      ],
+      "args": [
+        "--dry-run",
+        "arg1",
+        "-f",
+        "file",
+        "arg2",
+        "arg3"
+      ],
+      "mode": "subcommand",
+      "dashdash": true
+    }
+  ],
+  "handles unknown long flags as args": [
+    [
+      "move",
+      "crash",
+      "--notaflag",
+      "arg2"
+    ],
+    {
+      "subs": [
+        "move",
+        "crash"
+      ],
+      "args": [
+        "--notaflag",
+        "arg2"
+      ],
+      "mode": "subcommand"
+    }
+  ],
+  "handles unknown short flags as args": [
+    [
+      "move",
+      "crash",
+      "-x",
+      "arg2",
+      "--dry-run"
+    ],
+    {
+      "subs": [
+        "move",
+        "crash"
+      ],
+      "args": [
+        "-x",
+        "arg2"
+      ],
+      "flags": {
+        "dry-run": true
+      },
+      "mode": "subcommand"
+    }
+  ],
+  "handles --help": [
+    [
+      "move",
+      "--help"
+    ],
+    {
+      "subs": [
+        "move"
+      ],
+      "flags": {
+      },
+      "args": [
+
+      ],
+      "help": true,
+      "mode": "subcommand"
+    }
+  ],
+  "handles -?": [
+    [
+      "move",
+      "foo",
+      "bar",
+      "--help",
+      "waz"
+    ],
+    {
+      "subs": [
+        "move"
+      ],
+      "flags": {
+      },
+      "args": [
+        "foo",
+        "bar",
+        "waz"
+      ],
+      "help": true
+    }
+  ],
+  "ignores -?/--help after double-dash": [
+    [
+      "move",
+      "--",
+      "--help",
+      "-?",
+      "--",
+      "-"
+    ],
+    {
+      "subs": [
+        "move"
+      ],
+      "flags": {
+      },
+      "args": [
+        "--help",
+        "-?",
+        "--",
+        "-"
+      ],
+      "help": false,
+      "dashdash": true
+    }
+  ],
+  "sets mode to flagarg when waiting for a flag argument": [
+    [
+      "move",
+      "crash",
+      "--dry-run",
+      "arg1",
+      "-f"
+    ],
+    {
+      "subs": [
+        "move",
+        "crash"
+      ],
+      "args": [
+        "arg1"
+      ],
+      "flags": {
+        "dry-run": true
+      },
+      "mode": "flagarg",
+      "current_flag": "output-to-file"
+    }
+  ],
+  "most specific sub's flag takes precedence in case of multiple matching": [
+    [
+      "sub-with-mandatory-flag",
+      "--verbose",
+      "foo",
+      "--mandatory",
+      "abc"
+    ],
+    {
+      "subs": [
+        "sub-with-mandatory-flag"
+      ],
+      "flags": {
+        "verbose": "foo",
+        "mandatory": "abc"
+      }
+    }
+  ]
+}
