@@ -5,6 +5,8 @@ use super::types;
 use super::machine_state::{MachineState, MachineStateMode};
 use super::token_matching::TokenMatching;
 
+use super::result::TabryResult;
+
 pub struct Machine {
     config: config_wrapper::ConfigWrapper,
     pub state: MachineState,
@@ -146,6 +148,11 @@ impl Machine {
         if self.log {
           println!("{}; current state: {:?}", msg, self.state);
         }
+    }
+
+    /// Call this after machine is done to morph into a result
+    pub fn to_result(self) -> TabryResult {
+      TabryResult::new(self.config, self.state)
     }
 }
 

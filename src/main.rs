@@ -3,6 +3,8 @@ mod token_matching;
 mod config_wrapper;
 mod machine_state;
 mod machine;
+mod result;
+mod options_finder;
 
 use anyhow::Context;
 use types::TabryConf;
@@ -28,6 +30,13 @@ fn run() -> anyhow::Result<()> {
     }
 
     println!("{}", serde_json::to_string_pretty(&machine.state)?);
+
+    let result = machine.to_result();
+    let options_finder = options_finder::OptionsFinder::new(result);
+    let opts = options_finder.options("token");
+
+    println!("options: {}", opts.join(", "));
+
     Ok(())
 }
 
