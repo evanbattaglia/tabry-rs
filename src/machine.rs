@@ -1,106 +1,26 @@
-use super::config_wrapper::ConfigWrapper;
+use super::config_wrapper;
 use super::types;
-use std::collections::HashMap;
+use super::machine_state::{MachineState, MachineStateMode};
 use std::mem::swap;
-use std::fmt;
-use serde::ser::{Serialize, Serializer, SerializeStruct};
-
-#[derive(Debug, Default, PartialEq)]
-pub enum MachineStateMode {
-    #[default]
-    Subcommand,
-    Flagarg {
-        current_flag: String,
-    },
-}
-
-impl From<&MachineStateMode> for String {
-    fn from(mode: &MachineStateMode) -> Self {
-        match mode {
-            MachineStateMode::Subcommand => "Subcommand".to_string(),
-            MachineStateMode::Flagarg { current_flag } => format!("Flagarg({})", current_flag),
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct MachineState {
-    pub mode: MachineStateMode,
-    pub subcommand_stack: Vec<String>,
-    pub flags: HashMap<String, bool>,
-    pub flag_args: HashMap<String, String>,
-    pub args: Vec<String>,
-    pub help: bool,
-    pub dashdash: bool,
-}
-
-impl Serialize for MachineState {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
-        let mut n_fields = 7;
-        if let MachineStateMode::Flagarg { .. } = self.mode {
-            n_fields += 1;
-        }
-
-        let mut state = serializer.serialize_struct("MachineState", 7)?;
-
-        if let MachineStateMode::Flagarg { current_flag } = &self.mode {
-            state.serialize_field("mode", "flagarg")?;
-            state.serialize_field("current_flag", current_flag)?;
-        } else {
-            state.serialize_field("mode", "subcommand")?;
-        }
-
-        state.serialize_field("flags", &self.flags)?;
-        state.serialize_field("flag_args", &self.flag_args)?;
-        state.serialize_field("args", &self.args)?;
-        state.serialize_field("help", &self.help)?;
-        state.serialize_field("dashdash", &self.dashdash)?;
-        state.end()
-    }
-}
-
-impl fmt::Debug for MachineState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut res = & mut f.debug_struct("MachineState");
-        // TODO: macro to add to all if not default
-        // except it doesn't work for vec... or bool, if serde_json is used...
-        // there might even be another way to just not show defaults
-        if !(self.mode == Default::default()) {
-            res = res.field("mode", &self.mode);
-        }
-        if !self.subcommand_stack.is_empty() {
-            res = res.field("subcommand_stack", &self.subcommand_stack);
-        }
-        if !(self.flags == Default::default()) {
-            res = res.field("flags", &self.flags);
-        }
-        if !(self.flag_args == Default::default()) {
-            res = res.field("flag_args", &self.flag_args);
-        }
-        if !self.args.is_empty() {
-            res = res.field("args", &self.args);
-        }
-        if self.help {
-            res = res.field("help", &self.help);
-        }
-        if self.dashdash {
-            res = res.field("dashdash", &self.dashdash);
-        }
-        res.finish()
-    }
-}
 
 pub struct Machine {
-    config: ConfigWrapper,
+    config: config_wrapper::ConfigWrapper,
     pub state: MachineState,
 }
+
+// TODO replace error static string
+// #[derive(Debug, thiserror::Error)]
+// enum MachineError {
+//     #[error("include {0} not found")]
+//     IncludeNotFound(String),
+// }
+    
 
 impl Machine {
     // TODO: want to be able to pass a reference in here. need named lifetime. or can clone it...
     pub fn new(conf: types::TabryConf) -> Machine {
         Machine {
-            config: ConfigWrapper::new(conf),
+            config: config_wrapper::ConfigWrapper::new(conf),
             state: MachineState::default()
         }
     }
@@ -173,7 +93,7 @@ impl Machine {
     }
 
     fn match_help(&mut self, token: &String) -> bool {
-        if token == "help" {
+        if token == "help" || token == "--help" || token == "-?" {
             self.state.help = true;
             true
         } else {
@@ -199,7 +119,59 @@ impl Machine {
     }
 
     fn log(&self, msg: String) {
-        println!("{}; current state: {:?}", msg, self.state);
+        if let Ok(_) = std::env::var("RABRY_DEBUG") {
+          println!("{}; current state: {:?}", msg, self.state);
+        }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use assert_json_diff::assert_json_eq;
+    use serde::Deserialize;
+
+    fn load_fixture_file<T: for<'a>Deserialize<'a>>(filename: &str) -> T {
+        let file_str = fs::read_to_string(format!("fixtures/{filename}")).unwrap();
+        serde_json::from_str::<T>(&file_str).unwrap()
+    }
+
+    fn add_expectation_defaults(mut expectation: serde_json::Value) -> serde_json::Value {
+      let default_machine_state: MachineState = Default::default();
+      let mut base = serde_json::value::to_value(default_machine_state).unwrap();
+      let base_obj = base.as_object_mut().unwrap();
+      let to_add = expectation.as_object_mut().unwrap();
+      base_obj.append(to_add);
+      base
+    }
+
+    // TODO it would be nice to split this up into multiple test so it doesn't fail immediately,
+    // but I don't know how to do that with the current test framework
+    #[test]
+    fn test_all_expectations() {
+        // load fixture files
+        let tabry_conf: types::TabryConf = load_fixture_file("vehicles.json");
+        let expectations: serde_json::Value = load_fixture_file("vehicles-expectations.json");
+
+        for (name, test_case) in expectations.as_object().unwrap() {
+            println!("TESTING TEST CASE {name}");
+            let mut machine = Machine::new(tabry_conf.clone());
+            // test_case is an array with 1) the tokens and 2) the expected state
+            let tokens = test_case[0].as_array().unwrap();
+            let expected_state = add_expectation_defaults(test_case[1].clone());
+
+            // loop over tokens:
+            for token in tokens {
+                machine.next(&token.as_str().unwrap().to_string()).unwrap();
+            }
+
+
+            let machine_state_as_serde_value = &mut serde_json::value::to_value(&machine.state).unwrap();
+
+            assert_json_eq!(machine_state_as_serde_value, expected_state);
+        }
+    }
+}
+
 
