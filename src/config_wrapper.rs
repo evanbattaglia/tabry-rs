@@ -1,4 +1,4 @@
-use crate::types;
+use super::types;
 
 /// Wrapper around Config struct that provides some methods for accessing it. In the future it may
 /// have a cache.

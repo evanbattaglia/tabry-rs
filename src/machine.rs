@@ -1,11 +1,12 @@
-use crate::config_wrapper::ConfigWrapper;
-use crate::types;
+use super::config_wrapper::ConfigWrapper;
+use super::types;
 use std::collections::HashMap;
 use std::mem::swap;
 use std::fmt;
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 #[derive(Debug, Default, PartialEq)]
-enum MachineStateMode {
+pub enum MachineStateMode {
     #[default]
     Subcommand,
     Flagarg {
@@ -13,15 +14,50 @@ enum MachineStateMode {
     },
 }
 
+impl From<&MachineStateMode> for String {
+    fn from(mode: &MachineStateMode) -> Self {
+        match mode {
+            MachineStateMode::Subcommand => "Subcommand".to_string(),
+            MachineStateMode::Flagarg { current_flag } => format!("Flagarg({})", current_flag),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct MachineState {
-    mode: MachineStateMode,
-    subcommand_stack: Vec<String>,
-    flags: HashMap<String, bool>,
-    flag_args: HashMap<String, String>,
-    args: Vec<String>,
-    help: bool,
-    dashdash: bool,
+    pub mode: MachineStateMode,
+    pub subcommand_stack: Vec<String>,
+    pub flags: HashMap<String, bool>,
+    pub flag_args: HashMap<String, String>,
+    pub args: Vec<String>,
+    pub help: bool,
+    pub dashdash: bool,
+}
+
+impl Serialize for MachineState {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        let mut n_fields = 7;
+        if let MachineStateMode::Flagarg { .. } = self.mode {
+            n_fields += 1;
+        }
+
+        let mut state = serializer.serialize_struct("MachineState", 7)?;
+
+        if let MachineStateMode::Flagarg { current_flag } = &self.mode {
+            state.serialize_field("mode", "flagarg")?;
+            state.serialize_field("current_flag", current_flag)?;
+        } else {
+            state.serialize_field("mode", "subcommand")?;
+        }
+
+        state.serialize_field("flags", &self.flags)?;
+        state.serialize_field("flag_args", &self.flag_args)?;
+        state.serialize_field("args", &self.args)?;
+        state.serialize_field("help", &self.help)?;
+        state.serialize_field("dashdash", &self.dashdash)?;
+        state.end()
+    }
 }
 
 impl fmt::Debug for MachineState {
