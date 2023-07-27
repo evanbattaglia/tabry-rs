@@ -34,24 +34,28 @@ pub enum TabryArg {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TabryConcreteFlag {
+    pub name: String,
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    #[serde(default)]
+    pub options: Vec<TabryOpt>,
+    // TODO: could break up into flagarg and regular flag
+    #[serde(default)]
+    pub arg: bool,
+    #[serde(default)]
+    pub required: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TabryFlag {
     TabryIncludeFlag {
         include: String,
     },
-    TabryConcreteFlag {
-        name: String,
-        #[serde(default)]
-        aliases: Vec<String>,
-        #[serde(default)]
-        options: Vec<TabryOpt>,
-        // TODO: could break up into flagarg and regular flag
-        #[serde(default)]
-        arg: bool,
-        #[serde(default)]
-        required: bool,
-    },
+    TabryConcreteFlag(TabryConcreteFlag)
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabryConcreteSub {
     pub name: Option<String>,

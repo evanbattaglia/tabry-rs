@@ -1,11 +1,14 @@
+use std::mem::swap;
+
 use super::config_wrapper;
 use super::types;
 use super::machine_state::{MachineState, MachineStateMode};
-use std::mem::swap;
+use super::token_matching::TokenMatching;
 
 pub struct Machine {
     config: config_wrapper::ConfigWrapper,
     pub state: MachineState,
+    log: bool
 }
 
 // TODO replace error static string
@@ -21,7 +24,11 @@ impl Machine {
     pub fn new(conf: types::TabryConf) -> Machine {
         Machine {
             config: config_wrapper::ConfigWrapper::new(conf),
-            state: MachineState::default()
+            state: MachineState::default(),
+            log: match std::env::var("RABRY_DEBUG") {
+              Ok(s) => s != "0" && s != "false",
+              Err(_) => false
+            }
         }
     }
 
@@ -41,6 +48,9 @@ impl Machine {
         {
             Ok(())
         } else {
+            // Fallback -- machine treats anything unrecognized as an arg.
+            // If the command doesn't take the required numbers of arguments,
+            // that will be determined later.
             self.match_arg(token)
         }
     }
@@ -89,11 +99,25 @@ impl Machine {
             return Ok(false)
         }
 
+        // Check flags for each Subcommand in stack, starting with the most specific Subcommand.
+        for sub in self.config.dig_subs(&self.state.subcommand_stack)?.iter().rev() {
+          for flag in self.config.expand_flags(&sub.flags) {
+            if flag.match_token(token) {
+              if flag.arg {
+                self.state.mode = MachineStateMode::Flagarg { current_flag: flag.name.clone() }
+              } else {
+                self.state.flags.insert(flag.name.clone(), true);
+              }
+              return Ok(true);
+            }
+          }
+        }
+
         return Ok(false);
     }
 
     fn match_help(&mut self, token: &String) -> bool {
-        if token == "help" || token == "--help" || token == "-?" {
+        if !self.state.dashdash && (token == "help" || token == "--help" || token == "-?") {
             self.state.help = true;
             true
         } else {
@@ -119,7 +143,7 @@ impl Machine {
     }
 
     fn log(&self, msg: String) {
-        if let Ok(_) = std::env::var("RABRY_DEBUG") {
+        if self.log {
           println!("{}; current state: {:?}", msg, self.state);
         }
     }
@@ -138,12 +162,26 @@ mod tests {
     }
 
     fn add_expectation_defaults(mut expectation: serde_json::Value) -> serde_json::Value {
-      let default_machine_state: MachineState = Default::default();
-      let mut base = serde_json::value::to_value(default_machine_state).unwrap();
-      let base_obj = base.as_object_mut().unwrap();
-      let to_add = expectation.as_object_mut().unwrap();
-      base_obj.append(to_add);
-      base
+        // base is the default object, except no flag_args (expectation file merges "flags" and
+        // "flag_args")
+        let default_machine_state: MachineState = Default::default();
+        let mut base = serde_json::value::to_value(default_machine_state).unwrap();
+        let base_obj = base.as_object_mut().unwrap();
+        base_obj.remove("flag_args");
+
+        let to_add = expectation.as_object_mut().unwrap();
+        base_obj.append(to_add);
+
+        base
+    }
+
+    // Expectations file has "flags" with boolean and string values, that is, flag_args and flags
+    // combined.
+    fn merge_flags_and_flag_args(machine_state_as_serde_value: &mut serde_json::Value) {
+        let val_as_obj = machine_state_as_serde_value.as_object_mut().unwrap();
+        let mut flag_args = val_as_obj.get("flag_args").unwrap().as_object().unwrap().clone();
+        val_as_obj.get_mut("flags").unwrap().as_object_mut().unwrap().append(&mut flag_args);
+        val_as_obj.remove_entry("flag_args");
     }
 
     // TODO it would be nice to split this up into multiple test so it doesn't fail immediately,
@@ -168,9 +206,17 @@ mod tests {
 
 
             let machine_state_as_serde_value = &mut serde_json::value::to_value(&machine.state).unwrap();
+            merge_flags_and_flag_args(machine_state_as_serde_value);
 
             assert_json_eq!(machine_state_as_serde_value, expected_state);
         }
+    }
+
+    #[test]
+    fn test_missing_include() {
+      // let tabry_conf: types::TabryConf = load_fixture_file("missing_include.json");
+      // TODO
+      unimplemented!();
     }
 }
 
