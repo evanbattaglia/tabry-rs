@@ -26,15 +26,17 @@ fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> 
         machine.next(&token).unwrap();
     }
 
-    //if util::is_debug() {
+    if util::is_debug() {
         println!("{}", serde_json::to_string_pretty(&machine.state)?);
-    //}
+    }
 
     let result = machine.to_result();
     let options_finder = options_finder::OptionsFinder::new(result);
     let opts = options_finder.options(last_token);
 
-    println!("options: {}", opts.join(", "));
+    for opt in opts {
+        println!("{}", opt);
+    }
     Ok(())
 }
 
@@ -63,21 +65,29 @@ fn run_as_compline() -> anyhow::Result<()> {
     let compline = args.get(2).with_context(|| "missing compline")?;
 
     let all_tokens: Vec<String> = shell_words::split(compline)?;
+    if util::is_debug() {
+        println!("all_tokens={all_tokens:?}")
+    }
     let (tokens, last_token): (&[String], &str) = match &all_tokens[..] {
-        [] => (&all_tokens, ""),
-        [rest@.., last] => (rest, last)
+        &[] => panic!("no command line!"),
+        [_cmd_name] => (&all_tokens[1..], ""),
+        [_cmd_name, rest@.., last] => (rest, last)
     };
 
-    if compline.ends_with(" ") {
+    if compline.ends_with(" ") && last_token != "" {
         // TODO temporary hack until I can implement shell_tokenizer right!!!
         let mut tmp = tokens.iter().map(|s| s.clone()).collect::<Vec<_>>();
         tmp.push(last_token.to_owned());
-        println!("config_file={config_file:?}, tokens={:?} last_token=''", &tmp[..]);
-        print_options(config_file, &tmp[..], "");
+        if util::is_debug() {
+            println!("config_file={config_file:?}, tokens={:?} last_token=''", &tmp[..]);
+        }
+        print_options(config_file, &tmp[..], "")?;
         
     } else {
-        println!("config_file={config_file:?}, tokens={tokens:?} last_token={last_token:?}");
-        print_options(config_file, &tokens[..], last_token);
+        if util::is_debug() {
+            println!("config_file={config_file:?}, tokens={tokens:?} last_token={last_token:?}");
+        }
+        print_options(config_file, &tokens[..], last_token)?;
     }
     Ok(())
 }
