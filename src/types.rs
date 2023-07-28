@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap; // 1.0.124
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -85,14 +84,4 @@ pub struct TabryArgInclude {
     pub flags: Vec<TabryFlag>,
     #[serde(default)]
     pub subs: Vec<TabrySub>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TabryConf {
-    pub cmd: String,
-    pub main: TabryConcreteSub,
-    #[serde(default)]
-    pub arg_includes: HashMap<String, TabryArgInclude>,
-    #[serde(default)]
-    pub option_includes: HashMap<String, Vec<TabryOpt>>,
 }

@@ -1,14 +1,13 @@
 use std::mem::swap;
 
-use super::config_wrapper;
-use super::types;
+use super::config;
 use super::machine_state::{MachineState, MachineStateMode};
 use super::token_matching::TokenMatching;
 
 use super::result::TabryResult;
 
 pub struct Machine {
-    config: config_wrapper::ConfigWrapper,
+    config: config::TabryConf,
     pub state: MachineState,
     log: bool
 }
@@ -23,9 +22,9 @@ pub struct Machine {
 
 impl Machine {
     // TODO: want to be able to pass a reference in here. need named lifetime. or can clone it...
-    pub fn new(conf: types::TabryConf) -> Machine {
+    pub fn new(config: config::TabryConf) -> Machine {
         Machine {
-            config: config_wrapper::ConfigWrapper::new(conf),
+            config,
             state: MachineState::default(),
             log: super::util::is_debug()
         }
@@ -193,7 +192,7 @@ mod tests {
     #[test]
     fn test_all_expectations() {
         // load fixture files
-        let tabry_conf: types::TabryConf = load_fixture_file("vehicles.json");
+        let tabry_conf: config::TabryConf = load_fixture_file("vehicles.json");
         let expectations: serde_json::Value = load_fixture_file("vehicles-expectations.json");
 
         for (name, test_case) in expectations.as_object().unwrap() {
@@ -218,7 +217,7 @@ mod tests {
 
     #[test]
     fn test_missing_include() {
-      // let tabry_conf: types::TabryConf = load_fixture_file("missing_include.json");
+      // let tabry_conf: config::TabryConf = load_fixture_file("missing_include.json");
       // TODO
       unimplemented!();
     }

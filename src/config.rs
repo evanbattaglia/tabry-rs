@@ -1,20 +1,29 @@
 use super::types::*;
+use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-/// Wrapper around Config struct that provides some methods for accessing it. In the future it may
-/// have a cache.
+use anyhow::Context; // TODO replace usage with thiserror
+
 /// TODO: distinction between code in Machine, this file, and TokenMatching is rather arbritrary,
 /// some very similar things (sub and token flattening) are done different ways.
-pub struct ConfigWrapper {
-    // TODO: this isn't modified so should be able to be a reference I think? but that complicates
-    // lifetime stuff
-    conf: TabryConf
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TabryConf {
+    pub cmd: String,
+    pub main: TabryConcreteSub,
+    #[serde(default)]
+    pub arg_includes: HashMap<String, TabryArgInclude>,
+    #[serde(default)]
+    pub option_includes: HashMap<String, Vec<TabryOpt>>,
 }
 
-impl ConfigWrapper {
-    // In the future config wrapper will have a cache
-
-    pub fn new(conf: TabryConf) -> ConfigWrapper {
-        ConfigWrapper { conf }
+impl TabryConf {
+    // TODO use thiserror instead of anyhow here.
+    pub fn from_file(filename: &str) -> anyhow::Result<Self> {
+        let conf_str = std::fs::read_to_string(filename).
+            with_context(|| "reading file failed")?;
+        let conf: Self = serde_json::from_str(&conf_str).
+            with_context(|| "parsing file failed")?;
+        Ok(conf)
     }
 
     /// Get a TabryConcreteSub from the config, given it's "path" in the subcommand tree.
@@ -28,7 +37,7 @@ impl ConfigWrapper {
     // TODO switch to iterator without intermediate Vec
     /// Get all `TabryConcreteSub`s given a path in the subcommand tree.
     pub fn dig_subs(&self, sub_names_vec: &Vec<String>) -> Result<Vec<&TabryConcreteSub>, &'static str> {
-        let mut result = vec![&self.conf.main];
+        let mut result = vec![&self.main];
 
         for name in sub_names_vec {
             let subs_here = &result.last().unwrap().subs;
@@ -60,7 +69,7 @@ impl ConfigWrapper {
             match sub {
                 TabrySub::TabryIncludeArg { include } => {
                     // Lookup include, which may return an error
-                    let inc = self.conf.arg_includes.get(include).ok_or("Error")?;
+                    let inc = self.arg_includes.get(include).ok_or("Error")?;
                     // Flatten the include's subs recursively (which may return an error)
                     self.flatten_subs(&inc.subs)
                 },
@@ -83,7 +92,7 @@ impl ConfigWrapper {
             match flag {
                 TabryFlag::TabryIncludeFlag { include } => {
                     // TODO: bubble up error instead of unwrap
-                    let include = self.conf.arg_includes.get(include).unwrap();
+                    let include = self.arg_includes.get(include).unwrap();
                     self.expand_flags(&include.flags).into_iter()
                 }
                 TabryFlag::TabryConcreteFlag(concrete_flag) =>
