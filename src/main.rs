@@ -64,32 +64,15 @@ fn run_as_compline() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
     let config_file = args.get(1).with_context(|| "missing config_file")?;
     let compline = args.get(2).with_context(|| "missing compline")?;
+    let comppoint = args.get(3).with_context(|| "missing comppoint")?;
+    let comppoint = comppoint.parse::<usize>()?;
 
-    let all_tokens: Vec<String> = shell_words::split(compline)?;
-    if util::is_debug() {
-        println!("all_tokens={all_tokens:?}")
-    }
-    let (tokens, last_token): (&[String], &str) = match &all_tokens[..] {
-        &[] => panic!("no command line!"),
-        [_cmd_name] => (&all_tokens[1..], ""),
-        [_cmd_name, rest@.., last] => (rest, last)
-    };
+    let tokenized_result = shell_tokenizer::split_with_comppoint(compline, comppoint)?;
+    let args = tokenized_result.arguments;
+    let last_arg = tokenized_result.last_argument;
 
-    if compline.ends_with(" ") && last_token != "" {
-        // TODO temporary hack until I can implement shell_tokenizer right!!!
-        let mut tmp = tokens.iter().map(|s| s.clone()).collect::<Vec<_>>();
-        tmp.push(last_token.to_owned());
-        if util::is_debug() {
-            println!("config_file={config_file:?}, tokens={:?} last_token=''", &tmp[..]);
-        }
-        print_options(config_file, &tmp[..], "")?;
-        
-    } else {
-        if util::is_debug() {
-            println!("config_file={config_file:?}, tokens={tokens:?} last_token={last_token:?}");
-        }
-        print_options(config_file, &tokens[..], last_token)?;
-    }
+    //println!("config_file={config_file:?}, tokens={args:?} last_token={last_arg:?}");
+    print_options(config_file, &args[..], &last_arg)?;
     Ok(())
 }
 
