@@ -27,10 +27,7 @@ impl Machine {
         Machine {
             config: config_wrapper::ConfigWrapper::new(conf),
             state: MachineState::default(),
-            log: match std::env::var("RABRY_DEBUG") {
-              Ok(s) => s != "0" && s != "false",
-              Err(_) => false
-            }
+            log: super::util::is_debug()
         }
     }
 

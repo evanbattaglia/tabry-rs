@@ -23,6 +23,7 @@ impl OptionsFinder {
         self.add_options_subcommand_subs(&mut res, token);
         self.add_options_subcommand_flags(&mut res, token);
         self.add_options_subcommand_args(&mut res, token);
+
         res
     }
 
@@ -36,7 +37,10 @@ impl OptionsFinder {
         let concrete_subs = self.result.config.flatten_subs(&opaque_subs).unwrap();
         for s in concrete_subs {
             // TODO: error here if no name -- only allowable for top level
-            buffer.push(s.name.as_ref().unwrap().clone());
+            let name = s.name.as_ref().unwrap();
+            if name.starts_with(token) {
+                buffer.push(s.name.as_ref().unwrap().clone());
+            }
         }
     }
 

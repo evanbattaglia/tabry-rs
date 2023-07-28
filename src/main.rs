@@ -5,6 +5,7 @@ mod machine_state;
 mod machine;
 mod result;
 mod options_finder;
+mod util;
 
 use anyhow::Context;
 use types::TabryConf;
@@ -17,31 +18,72 @@ fn config_from_file(filename: &str) -> anyhow::Result<TabryConf> {
     Ok(conf)
 }
 
-fn run() -> anyhow::Result<()> {
-    let args = std::env::args().collect::<Vec<String>>();
-
-    let config_file = args.get(1).with_context(|| "missing argument context_file")?;
-    let config = config_from_file(&config_file).with_context(|| "invalid config file")?;
-
+fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> anyhow::Result<()> {
+    let config = config_from_file(&config_filename).with_context(|| "invalid config file")?;
     let mut machine = machine::Machine::new(config);
-    for arg in &args[2..] {
+    for token in tokens {
         // TODO: use std::error::Error trait in Machine so can use "?" here instead of unwrap()
-        machine.next(&arg).unwrap();
+        machine.next(&token).unwrap();
     }
 
-    println!("{}", serde_json::to_string_pretty(&machine.state)?);
+    //if util::is_debug() {
+        println!("{}", serde_json::to_string_pretty(&machine.state)?);
+    //}
 
     let result = machine.to_result();
     let options_finder = options_finder::OptionsFinder::new(result);
-    let opts = options_finder.options("token");
+    let opts = options_finder.options(last_token);
 
     println!("options: {}", opts.join(", "));
+    Ok(())
+}
 
+/*
+this is broken
+
+// This runs using the filename plus args as tokens
+fn run_as_args() -> anyhow::Result<()> {
+    // TODO can prpobably use match to simplify this
+    let args = std::env::args().collect::<Vec<String>>();
+    let [config_file, tokens@.., last_token]: (&str, &[String], &str) = &args[..] else {
+        panic!("wrong usage (TODO nicer message");
+    }
+
+    print_options(config_file, &tokens[..], last_token)?;
+
+    Ok(())
+}
+*/
+
+// This runs using the filename plus 2nd arg as compline (shellsplits ARGV[2])
+fn run_as_compline() -> anyhow::Result<()> {
+    // TODO can maybe use match to simplify this
+    let args = std::env::args().collect::<Vec<_>>();
+    let config_file = args.get(1).with_context(|| "missing config_file")?;
+    let compline = args.get(2).with_context(|| "missing compline")?;
+
+    let all_tokens: Vec<String> = shell_words::split(compline)?;
+    let (tokens, last_token): (&[String], &str) = match &all_tokens[..] {
+        [] => (&all_tokens, ""),
+        [rest@.., last] => (rest, last)
+    };
+
+    if compline.ends_with(" ") {
+        // TODO temporary hack until I can implement shell_tokenizer right!!!
+        let mut tmp = tokens.iter().map(|s| s.clone()).collect::<Vec<_>>();
+        tmp.push(last_token.to_owned());
+        println!("config_file={config_file:?}, tokens={:?} last_token=''", &tmp[..]);
+        print_options(config_file, &tmp[..], "");
+        
+    } else {
+        println!("config_file={config_file:?}, tokens={tokens:?} last_token={last_token:?}");
+        print_options(config_file, &tokens[..], last_token);
+    }
     Ok(())
 }
 
 fn main() {
-    run().unwrap();
+    run_as_compline().unwrap();
 }
 
 
