@@ -6,6 +6,7 @@ mod machine;
 mod result;
 mod options_finder;
 mod util;
+mod shell_tokenizer;
 
 use anyhow::Context;
 use types::TabryConf;

@@ -108,6 +108,7 @@ mod tests {
         let actual = serde_json::value::to_value(state);
         let expected = serde_json::from_str::<serde_json::Value>(r#"
           {
+              "subs": [],
               "help": true,
               "dashdash": false,
               "flag_args": {"foo":"bar"},
@@ -117,6 +118,5 @@ mod tests {
           }
         "#);
         assert_json_eq!(actual.unwrap(), expected.unwrap());
-
     }
 }
