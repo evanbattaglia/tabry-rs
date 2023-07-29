@@ -121,16 +121,12 @@ impl OptionsFinder {
         }
 
         Ok(())
-        
-        //self.result.sub_stack.iter().map (|sub| 
-        // TODO
     }
 
     fn add_options_flagarg(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
         let MachineStateMode::Flagarg { current_flag } = &self.result.state.mode else { unreachable!() };
         for sub in self.result.sub_stack.iter() {
             for flag in self.result.config.expand_flags(&sub.flags) {
-                println!("looking for {}", flag.name);
                 if &flag.name == current_flag {
                     self.add_options(res, &flag.options)?;
                     return Ok(());
