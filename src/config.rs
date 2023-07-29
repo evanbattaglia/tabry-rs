@@ -81,6 +81,20 @@ impl TabryConf {
         }
     }
 
+    pub fn get_arg_include(&self, name: &str) -> Result<&TabryArgInclude, TabryConfError> {
+        match self.arg_includes.get(name) {
+            Some(inc) => Ok(inc),
+            None => Err(TabryConfError::MissingInclude(name.to_string())),
+        }
+    }
+
+    pub fn get_option_include(&self, name: &str) -> Result<&Vec<TabryOpt>, TabryConfError> {
+        match self.option_includes.get(name) {
+            Some(inc) => Ok(inc),
+            None => Err(TabryConfError::MissingInclude(name.to_string())),
+        }
+    }
+
     pub fn flatten_subs<'a>(&'a self, subs: &'a Vec<TabrySub>) ->
         Result<Vec<&TabryConcreteSub>, TabryConfError> {
 
@@ -88,7 +102,7 @@ impl TabryConf {
             match sub {
                 TabrySub::TabryIncludeArg { include } => {
                     // Lookup include, which may return an error
-                    let inc = self.arg_includes.get(include).ok_or(TabryConfError::MissingInclude(include.to_string()))?;
+                    let inc = self.get_arg_include(include)?;
                     // Flatten the include's subs recursively (which may return an error)
                     self.flatten_subs(&inc.subs)
                 },
@@ -110,7 +124,7 @@ impl TabryConf {
         let iter = flags.iter().flat_map(|flag|
             match flag {
                 TabryFlag::TabryIncludeFlag { include } => {
-                    // TODO: bubble up error instead of unwrap
+                    // TODO: bubble up error instead of unwrap (use get_arg_include)
                     let include = self.arg_includes.get(include).unwrap();
                     self.expand_flags(&include.flags).into_iter()
                 }

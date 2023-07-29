@@ -26,7 +26,7 @@ fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> 
     let options_finder = options_finder::OptionsFinder::new(result);
     let opts = options_finder.options(last_token);
 
-    for opt in opts {
+    for opt in opts? {
         println!("{}", opt);
     }
     Ok(())
