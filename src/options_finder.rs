@@ -33,7 +33,7 @@ impl OptionsFinder {
             return
         }
 
-        let opaque_subs = &self.result.current_sub.subs;
+        let opaque_subs = &self.result.current_sub().subs;
         let concrete_subs = self.result.config.flatten_subs(&opaque_subs).unwrap();
         for s in concrete_subs {
             // TODO: error here if no name -- only allowable for top level
@@ -49,6 +49,7 @@ impl OptionsFinder {
     }
 
     fn add_options_subcommand_args(&self, buffer: &mut Vec<String>, token: &str) {
+        //self.result.sub_stack.iter().map (|sub| 
         // TODO
     }
 
