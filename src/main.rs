@@ -24,10 +24,17 @@ fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> 
 
     let result = machine.to_result();
     let options_finder = options_finder::OptionsFinder::new(result);
-    let opts = options_finder.options(last_token);
+    let opts = options_finder.options(last_token)?;
 
-    for opt in opts? {
+    for opt in opts.options {
         println!("{}", opt);
+    }
+
+    if opts.special_options.len() > 0 {
+        println!("");
+        for opt in opts.special_options {
+            println!("{}", opt);
+        }
     }
     Ok(())
 }

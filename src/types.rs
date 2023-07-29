@@ -21,15 +21,18 @@ pub enum TabryArg {
     TabryIncludeArg {
         include: String,
     },
-    TabryConcreteArg {
-        name: Option<String>,
-        #[serde(default)]
-        options: Vec<TabryOpt>,
-        #[serde(default)]
-        optional: bool,
-        #[serde(default)]
-        varargs: bool,
-    },
+    TabryConcreteArg(TabryConcreteArg)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TabryConcreteArg {
+    pub name: Option<String>,
+    #[serde(default)]
+    pub options: Vec<TabryOpt>,
+    #[serde(default)]
+    pub optional: bool,
+    #[serde(default)]
+    pub varargs: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

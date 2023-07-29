@@ -1,6 +1,7 @@
 use super::types::*;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 /// TODO: distinction between code in Machine, this file, and TokenMatching is rather arbritrary,
 /// some very similar things (sub and token flattening) are done different ways.
@@ -13,8 +14,6 @@ pub struct TabryConf {
     #[serde(default)]
     pub option_includes: HashMap<String, Vec<TabryOpt>>,
 }
-
-use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum TabryConfError {
@@ -130,6 +129,22 @@ impl TabryConf {
                 }
                 TabryFlag::TabryConcreteFlag(concrete_flag) =>
                     Box::new(std::iter::once(concrete_flag))
+            }
+        );
+        Box::new(iter)
+    }
+
+    // TODO: this is an exact copy of the the above expand_flags()
+    pub fn expand_args<'a>(&'a self, args: &'a Vec<TabryArg>) -> Box<dyn Iterator<Item = &TabryConcreteArg> + 'a> {
+        let iter = args.iter().flat_map(|arg|
+            match arg {
+                TabryArg::TabryIncludeArg { include } => {
+                    // TODO: bubble up error instead of unwrap (use get_arg_include)
+                    let include = self.arg_includes.get(include).unwrap();
+                    self.expand_args(&include.args).into_iter()
+                }
+                TabryArg::TabryConcreteArg(concrete_arg) =>
+                    Box::new(std::iter::once(concrete_arg))
             }
         );
         Box::new(iter)

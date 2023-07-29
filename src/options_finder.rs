@@ -1,10 +1,32 @@
 use super::machine_state::MachineStateMode;
 use super::result::TabryResult;
 use super::types::TabryOpt;
+use super::types::TabryConcreteArg;
 use super::config::TabryConfError;
+use std::process::Command;
+use std::collections::HashSet;
 
 pub struct OptionsFinder {
     result: TabryResult,
+}
+
+pub struct OptionsResults {
+    prefix: String,
+    pub options: HashSet<String>,
+    pub special_options: HashSet<String>,
+}
+
+impl OptionsResults {
+    fn insert(&mut self, value: &str) {
+        if value.starts_with(&self.prefix) {
+            // TODO get_or_insert_owned() in nightly would be ideal
+            self.options.insert(value.to_owned());
+        }
+    }
+
+    fn insert_special(&mut self, value: &str) {
+        self.special_options.insert(value.to_owned());
+    }
 }
 
 impl OptionsFinder {
@@ -12,25 +34,29 @@ impl OptionsFinder {
         Self { result }
     }
 
-    pub fn options(&self, token: &str) -> Result<Vec<String>, TabryConfError> {
+    pub fn options(&self, token: &str) -> Result<OptionsResults, TabryConfError> {
+        let mut res = OptionsResults {
+            prefix: token.to_owned(), options: HashSet::new(), special_options: HashSet::new()
+        };
+
         match self.result.state.mode {
-            MachineStateMode::Subcommand => self.options_subcommand(token),
-            MachineStateMode::Flagarg { .. } => self.options_flagarg(token),
-        }
-    }
+            MachineStateMode::Subcommand => self.add_options_subcommand(&mut res)?,
+            MachineStateMode::Flagarg { .. } => self.add_options_flagarg(&mut res)?,
+        };
 
-    fn options_subcommand(&self, token: &str) -> Result<Vec<String>, TabryConfError> {
-        let mut res = vec![];
-        // TODO: required flags
-        self.add_options_subcommand_subs(&mut res, token);
-        self.add_options_subcommand_flags(&mut res, token)?;
-        self.add_options_subcommand_args(&mut res, token);
-
-        // TODO: uniqify options
         Ok(res)
     }
 
-    fn add_options_subcommand_subs(&self, buffer: &mut Vec<String>, token: &str) {
+    fn add_options_subcommand(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
+        // TODO: required flags
+        self.add_options_subcommand_subs(res);
+        self.add_options_subcommand_flags(res)?;
+        self.add_options_subcommand_args(res)?;
+
+        Ok(())
+    }
+
+    fn add_options_subcommand_subs(&self, res: &mut OptionsResults) {
         // once arg has been given, can no longer use a subcommand
         if !self.result.state.args.is_empty() {
             return
@@ -40,52 +66,77 @@ impl OptionsFinder {
         let concrete_subs = self.result.config.flatten_subs(&opaque_subs).unwrap();
         for s in concrete_subs {
             // TODO: error here if no name -- only allowable for top level
-            let name = s.name.as_ref().unwrap();
-            if name.starts_with(token) {
-                buffer.push(s.name.as_ref().unwrap().clone());
-            }
+            res.insert(s.name.as_ref().unwrap());
         }
     }
 
-    fn add_options_subcommand_flags(&self, buffer: &mut Vec<String>, token: &str) -> Result<(), TabryConfError> {
+    // TODO need to filter with starts_With()
+    fn add_options_subcommand_flags(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
         if self.result.state.dashdash {
             return Ok(());
         }
 
         for sub in self.result.sub_stack.iter() {
-            for flag in self.result.config.expand_flags(&self.result.current_sub().flags) {
-                self.add_options(buffer, &flag.options)?;
+            for flag in self.result.config.expand_flags(&sub.flags) {
+                self.add_options(res, &flag.options)?;
             }
         }
 
         Ok(())
     }
 
-    fn add_options(&self, buffer: &mut Vec<String>, options: &Vec<TabryOpt>) -> Result<(), TabryConfError> {
+    fn add_options(&self, res: &mut OptionsResults, options: &Vec<TabryOpt>) -> Result<(), TabryConfError> {
         for opt in options.iter() {
-            match opt {
-                TabryOpt::File => (),
-                TabryOpt::Dir => (),
-                TabryOpt::Const { value } => {
-                    buffer.push(value.to_owned());
-                }
-                TabryOpt::Shell { value } => (),
+            match &opt {
+                TabryOpt::File => res.insert_special("file"),
+                TabryOpt::Dir => res.insert_special("dir"),
+                TabryOpt::Const { value } => res.insert(value),
+                TabryOpt::Shell { value } => {
+                    let output = Command::new("sh").arg("-c").arg(value).output();
+                    // TODO bubble up errors instead on unwrap()
+                    let output_bytes = output.unwrap();
+                    let output_str = std::str::from_utf8(&output_bytes.stdout[..]).unwrap();
+                    for line in output_str.split("\n") {
+                        if line != "" {
+                            res.insert(line);
+                        }
+                    }
+                },
                 TabryOpt::Include { value } => {
                     // TODO: what happens if there is an include loop?
-                    self.add_options(buffer, self.result.config.get_option_include(value)?);
+                    self.add_options(res, self.result.config.get_option_include(value)?)?;
                 }
             }
         }
         Ok(())
     }
 
-    fn add_options_subcommand_args(&self, buffer: &mut Vec<String>, token: &str) {
+    fn add_options_subcommand_args(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
+        let sub_args = self.result.config.expand_args(&self.result.current_sub().args).collect::<Vec<_>>();
+
+        if let Some(arg) = sub_args.get(self.result.state.args.len()) {
+            self.add_options(res, &arg.options)?;
+        } else if let Some(TabryConcreteArg{varargs: true, options, ..}) = sub_args.last() {
+            self.add_options(res, &options)?;
+        }
+
+        Ok(())
+        
         //self.result.sub_stack.iter().map (|sub| 
         // TODO
     }
 
-    fn options_flagarg(&self, token: &str) -> Result<Vec<String>, TabryConfError> {
+    fn add_options_flagarg(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
         let MachineStateMode::Flagarg { current_flag } = &self.result.state.mode else { unreachable!() };
-        Ok(vec![])
+        for sub in self.result.sub_stack.iter() {
+            for flag in self.result.config.expand_flags(&sub.flags) {
+                println!("looking for {}", flag.name);
+                if &flag.name == current_flag {
+                    self.add_options(res, &flag.options)?;
+                    return Ok(());
+                }
+            }
+        }
+        Ok(())
     }
 }

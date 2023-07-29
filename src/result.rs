@@ -24,4 +24,3 @@ impl TabryResult {
         self.sub_stack.last().unwrap()
     }
 }
-
