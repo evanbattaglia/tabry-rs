@@ -1,22 +1,40 @@
+# USAGE:
+# 1. Put the following you your .bash_profile:
+#      source /my/path/to/rabry_bash.sh && _rabry_complete_all ~/.tabry
+#    (You can use multiple colon-separated strings if you want)
+# 2. Put *.tabry and/or compiled *.json configs in the ~/.tabry directory. If you
+#   are using *.tabry files, currently you'll also need to have the tabry
+#   compiler (tabryc) installed and in the path too (rabry will compile and
+#   cache the results)
+# 3. Enjoy your completions!
 
-_rabry_VEHICLES_completions() {
-  _rabry_completions_internal /home/evan/localonly/tdev/rabry/target/debug/rabry /home/evan/localonly/tdev/rabry/fixtures/vehicles.json
+_rabry_path=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+_rabry_executable="$_rabry_path/target/debug/rabry"
+
+_rabry_complete_all() {
+  [[ -n "$1" ]] && export RABRY_IMPORT_PATH="$1"
+  [[ -x "$_rabry_executable" ]] || return
+  "$_rabry_executable" commands | while read cmd; do
+  echo complete -F _rabry_completions "$cmd"
+  complete -F _rabry_completions "$cmd"
+  done
 }
 
-complete -F _rabry_VEHICLES_completions vehicles
+_rabry_completions() {
+  _rabry_completions "$_rabry_path"/target/debug/rabry
+}
 
-# This is unchanged from tabry:
+# This is unchanged from tabry, except to remove the second arg
 _rabry_completions_internal()
 {
   local tabry_bash_executable="$1"
-  local tabry_bash_arg="$2"
 
   [[ -n "$TABRY_DEBUG" ]] && echo && echo -n tabry start bash: && date +%s.%N >&2
   local saveifs="$IFS"
   IFS=$'\n'
 
-  [[ -n "$TABRY_DEBUG" ]] && printf "%q %q %q %q\n" "$tabry_bash_executable" "$tabry_bash_arg" "$COMP_LINE" "$COMP_POINT"
-  local result=`"$tabry_bash_executable" "$tabry_bash_arg" "$COMP_LINE" "$COMP_POINT"`
+  [[ -n "$TABRY_DEBUG" ]] && printf "%q %q %q %q\n" "$tabry_bash_executable" "$COMP_LINE" "$COMP_POINT"
+  local result=`"$tabry_bash_executable" "$COMP_LINE" "$COMP_POINT"`
   local specials
 
   if [[ $result == *$'\n'$'\n'* ]]; then

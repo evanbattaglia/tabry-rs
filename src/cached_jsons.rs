@@ -1,5 +1,5 @@
 /// Given a "foo.tabry" file, checks if there is a compiled version
-/// under the name "foo.tabry.cache.json", and it is _newer_ than
+/// under the name "foo.tabry.cachejson", and it is _newer_ than
 /// the tabry file. If there is, uses that as the tabry config; if there isn't, kicks off the
 /// compiler (in the future I'd like to have the compiler in rust) and then uses it for completion.
 /// (this could be done in shell but it would add a bit of time to run every tab completion)
@@ -30,7 +30,7 @@ pub fn resolve_and_compile_cache_file(filename: &str) -> Result<String, TabryCac
     }
 
     let mut cache_filename = filename.to_string();
-    cache_filename.push_str(".cache.json");
+    cache_filename.push_str(".cachejson");
 
     let cache_modtime = modtime(&cache_filename);
     let tabry_modtime = modtime(filename);
