@@ -14,14 +14,16 @@ _rabry_executable="$_rabry_path/target/debug/rabry"
 _rabry_complete_all() {
   [[ -n "$1" ]] && export RABRY_IMPORT_PATH="$1"
   [[ -x "$_rabry_executable" ]] || return
-  "$_rabry_executable" commands | while read cmd; do
-  echo complete -F _rabry_completions "$cmd"
-  complete -F _rabry_completions "$cmd"
+  local oldifs="$IFS"
+  IFS=$'\n'
+  for cmd in $("$_rabry_executable" commands); do
+      complete -F _rabry_completions $cmd
   done
+  IFS="$oldifs"
 }
 
 _rabry_completions() {
-  _rabry_completions "$_rabry_path"/target/debug/rabry
+  _rabry_completions_internal "$_rabry_path"/target/debug/rabry
 }
 
 # This is unchanged from tabry, except to remove the second arg
