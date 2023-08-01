@@ -7,6 +7,7 @@ mod result;
 mod options_finder;
 mod util;
 mod shell_tokenizer;
+mod cached_jsons;
 
 use anyhow::Context;
 
@@ -61,6 +62,7 @@ fn run_as_compline() -> anyhow::Result<()> {
     // TODO can maybe use match to simplify this
     let args = std::env::args().collect::<Vec<_>>();
     let config_file = args.get(1).with_context(|| "missing config_file")?;
+    let config_file = cached_jsons::resolve_and_compile_cache_file(config_file)?;
     let compline = args.get(2).with_context(|| "missing compline")?;
     let comppoint = args.get(3).with_context(|| "missing comppoint")?;
     let comppoint = comppoint.parse::<usize>()?;
@@ -70,7 +72,7 @@ fn run_as_compline() -> anyhow::Result<()> {
     let last_arg = tokenized_result.last_argument;
 
     //println!("config_file={config_file:?}, tokens={args:?} last_token={last_arg:?}");
-    print_options(config_file, &args[..], &last_arg)?;
+    print_options(&config_file, &args[..], &last_arg)?;
     Ok(())
 }
 
