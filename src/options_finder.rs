@@ -2,6 +2,7 @@ use super::machine_state::MachineStateMode;
 use super::result::TabryResult;
 use super::types::TabryOpt;
 use super::types::TabryConcreteArg;
+use super::types::TabryConcreteFlag;
 use super::config::TabryConfError;
 use std::process::Command;
 use std::collections::HashSet;
@@ -70,15 +71,43 @@ impl OptionsFinder {
         }
     }
 
-    // TODO need to filter with starts_With()
+    fn flag_is_used(&self, flag: &TabryConcreteFlag) -> bool {
+        self.result.state.flags.contains_key(&flag.name) ||
+            self.result.state.flag_args.contains_key(&flag.name)
+    }
+
+    fn add_option_for_flag(res: &mut OptionsResults, flag: &TabryConcreteFlag) {
+        let flag_str =
+            if flag.name.len() == 1 {
+                format!("-{}", flag.name)
+            } else {
+                format!("--{}", flag.name)
+            };
+        res.insert(&flag_str);
+    }
+
     fn add_options_subcommand_flags(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
         if self.result.state.dashdash {
             return Ok(());
         }
 
+        let mut current_sub_flags = self.result.config.expand_flags(&self.result.current_sub().flags);
+        let first_reqd_flag = current_sub_flags.find(|f| f.required && !self.flag_is_used(f));
+        if let Some(first_reqd_flag) = first_reqd_flag {
+            Self::add_option_for_flag(res, first_reqd_flag);
+            return Ok(());
+        }
+
+        // Don't suggest flags unless user has typed a dash
+        if !res.prefix.starts_with("-") {
+            return Ok(());
+        }
+
         for sub in self.result.sub_stack.iter() {
             for flag in self.result.config.expand_flags(&sub.flags) {
-                self.add_options(res, &flag.options)?;
+                if !self.flag_is_used(flag) {
+                    Self::add_option_for_flag(res, flag);
+                }
             }
         }
 
