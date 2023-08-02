@@ -1,0 +1,25 @@
+{
+  "cmd": "foo",
+  "main": {
+    "subs": [
+      {
+        "name": "foo",
+        "args": [
+          {
+            "include": "bar"
+          }
+        ],
+        "flags": [
+          {
+            "include": "bar"
+          }
+        ],
+        "subs": [
+          {
+            "include": "bar"
+          }
+        ]
+      }
+    ]
+  }
+}

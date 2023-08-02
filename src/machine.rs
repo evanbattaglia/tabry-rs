@@ -190,7 +190,6 @@ mod tests {
         let expectations: serde_json::Value = load_fixture_file("vehicles-expectations.json");
 
         for (name, test_case) in expectations.as_object().unwrap() {
-            println!("TESTING TEST CASE {name}");
             let mut machine = Machine::new(tabry_conf.clone());
             // test_case is an array with 1) the tokens and 2) the expected state
             let tokens = test_case[0].as_array().unwrap();
@@ -211,9 +210,11 @@ mod tests {
 
     #[test]
     fn test_missing_include() {
-      // let tabry_conf: config::TabryConf = load_fixture_file("missing_include.json");
-      // TODO
-      unimplemented!();
+      let tabry_conf: TabryConf = load_fixture_file("missing_include.json");
+      let mut machine = Machine::new(tabry_conf.clone());
+      machine.next(&"foo".to_owned()).unwrap();
+      let result = machine.next(&"bar".to_owned());
+      assert!(matches!(result, Err(TabryConfError::MissingInclude { .. })));
     }
 }
 
