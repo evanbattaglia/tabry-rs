@@ -7,7 +7,7 @@ use thiserror::Error;
 /// some very similar things (sub and token flattening) are done different ways.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabryConf {
-    pub cmd: String,
+    pub cmd: Option<String>,
     pub main: TabryConcreteSub,
     #[serde(default)]
     pub arg_includes: HashMap<String, TabryArgInclude>,
