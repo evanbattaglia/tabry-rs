@@ -1,0 +1,10 @@
+[package]
+name = "rabry-compiler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rust-sitter = "0.3.4"
+
+[build-dependencies]
+rust-sitter-tool = "0.3.4"
