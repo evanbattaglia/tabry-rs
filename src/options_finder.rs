@@ -115,7 +115,7 @@ impl OptionsFinder {
     }
 
     fn add_options(&self, res: &mut OptionsResults, options: &Vec<TabryOpt>) -> Result<(), TabryConfError> {
-        for opt in options.iter() {
+        for opt in options {
             match &opt {
                 TabryOpt::File => res.insert_special("file"),
                 TabryOpt::Dir => res.insert_special("dir"),
@@ -154,7 +154,7 @@ impl OptionsFinder {
 
     fn add_options_flagarg(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
         let MachineStateMode::Flagarg { current_flag } = &self.result.state.mode else { unreachable!() };
-        for sub in self.result.sub_stack.iter() {
+        for sub in &self.result.sub_stack {
             for flag in self.result.config.expand_flags(&sub.flags) {
                 if &flag.name == current_flag {
                     self.add_options(res, &flag.options)?;
