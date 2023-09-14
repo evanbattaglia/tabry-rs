@@ -1,16 +1,14 @@
-mod types;
-mod token_matching;
-mod config;
-mod machine_state;
-mod machine;
-mod result;
-mod options_finder;
-mod util;
-mod shell_tokenizer;
-mod cached_jsons;
-mod config_finder;
-
 use anyhow::Context;
+
+use rabry::{
+    cached_jsons,
+    config,
+    config_finder,
+    machine,
+    options_finder,
+    shell_tokenizer,
+    util,
+};
 
 fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> anyhow::Result<()> {
     let config = config::TabryConf::from_file(&config_filename).with_context(|| "invalid config file")?;

@@ -1,5 +1,5 @@
 #[rust_sitter::grammar("tabry")]
-mod grammar {
+pub mod _grammar {
     #[rust_sitter::language]
     #[derive(Debug)]
     pub struct TabryFile {
@@ -90,10 +90,18 @@ mod grammar {
     }
 }
 
-fn main() {
- dbg!(grammar::parse("
-cmd foo
-varargs bar
-opt arg
-"));
-}
+pub use _grammar::*;
+
+// use std::borrow::Cow;
+
+// impl<'a> grammar::TabryString {
+//     fn string_value(&'a self) -> Cow<'a, String> {
+//         match self {
+//             grammar::TabryString::Unquoted { string } =>
+//                 Cow::Borrowed(string),
+//             grammar::TabryString::Quoted { string, .. } =>
+//                 Cow::Owned(string.replace("\\\"", "\"").replace("\\\\", "\\"))
+//         }
+//     }
+// }
+
