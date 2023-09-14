@@ -1,9 +1,9 @@
 #[rust_sitter::grammar("tabry")]
-pub mod _grammar {
+pub mod grammar {
     #[rust_sitter::language]
     #[derive(Debug)]
     pub struct TabryFile {
-        statements: Vec<TopLevelStatement>
+        pub statements: Vec<TopLevelStatement>
     }
 
     #[derive(Debug)]
@@ -26,7 +26,7 @@ pub mod _grammar {
     pub struct CmdStatement {
       #[rust_sitter::leaf(text = "cmd")]
       _cmd: (),
-      string: TabryString,
+      pub string: TabryString,
     }
 
     #[derive(Debug)]
@@ -57,16 +57,16 @@ pub mod _grammar {
     #[derive(Debug)]
     pub struct ArgStatement {
       #[rust_sitter::leaf(text = "opt")]
-      opt_modifier: Option<() >,
-      arg_type: ArgType,
-      string: Option<TabryString>,
+      pub opt_modifier: Option<() >,
+      pub arg_type: ArgType,
+      pub name: Option<TabryString>,
     }
 
     #[derive(Debug)]
     pub struct FlagStatement {
       #[rust_sitter::leaf(text = "flag")]
       _cmd: (),
-      string: TabryString,
+      pub string: TabryString,
     }
 
     // );
@@ -90,18 +90,16 @@ pub mod _grammar {
     }
 }
 
-pub use _grammar::*;
+pub use grammar::*;
 
-// use std::borrow::Cow;
-
-// impl<'a> grammar::TabryString {
-//     fn string_value(&'a self) -> Cow<'a, String> {
-//         match self {
-//             grammar::TabryString::Unquoted { string } =>
-//                 Cow::Borrowed(string),
-//             grammar::TabryString::Quoted { string, .. } =>
-//                 Cow::Owned(string.replace("\\\"", "\"").replace("\\\\", "\\"))
-//         }
-//     }
-// }
+impl std::fmt::Display for TabryString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            grammar::TabryString::Unquoted { string } =>
+                write!(f, "{}", string),
+            grammar::TabryString::Quoted { string, .. } =>
+                write!(f, "{}", string.replace("\\\"", "\"").replace("\\\\", "\\"))
+        }
+    }
+}
 
