@@ -9,6 +9,8 @@ pub enum TabryOpt {
     Dir,
     #[serde(rename = "const")]
     Const { value: String },
+    #[serde(rename = "delegate")]
+    Delegate { value: String },
     #[serde(rename = "shell")]
     Shell { value: String },
     #[serde(rename = "include")]

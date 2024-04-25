@@ -80,12 +80,23 @@ pub mod grammar {
         _shell: (),
         value: TabryString,
       },
+      Delegate {
+        #[rust_sitter::leaf(text = "opts")]
+        _opts: (),
+        #[rust_sitter::leaf(text = "delegate")]
+        _shell: (),
+        value: TabryString,
+      },
     }
 
     #[derive(Debug)]
     pub enum OptType {
       Const(
         #[rust_sitter::leaf(text = "const")]
+        ()
+      ),
+      Delegate(
+        #[rust_sitter::leaf(text = "delegate")]
         ()
       ),
       Shell(

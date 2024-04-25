@@ -120,6 +120,7 @@ impl OptionsFinder {
                 TabryOpt::File => res.insert_special("file"),
                 TabryOpt::Dir => res.insert_special("dir"),
                 TabryOpt::Const { value } => res.insert(value),
+                TabryOpt::Delegate { value } => res.insert_special(format!("delegate {}", value).as_str()),
                 TabryOpt::Shell { value } => {
                     let output = Command::new("sh").arg("-c").arg(value).output();
                     // TODO bubble up errors instead on unwrap()

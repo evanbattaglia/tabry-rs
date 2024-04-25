@@ -56,6 +56,7 @@ fn translate_opt(ast: &ast::OptsStatement) -> types::TabryOpt {
         ast::OptsStatement::File(..) => types::TabryOpt::File,
         ast::OptsStatement::Dir(..) => types::TabryOpt::Dir,
         ast::OptsStatement::Const { value, .. } => types::TabryOpt::Const { value: value.to_string() },
+        ast::OptsStatement::Delegate { value, .. } => types::TabryOpt::Delegate { value: value.to_string() },
         ast::OptsStatement::Shell { value, .. } => types::TabryOpt::Shell { value: value.to_string() },
     }
 }

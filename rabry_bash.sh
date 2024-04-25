@@ -73,8 +73,8 @@ _rabry_completions_internal()
         # and not actual options. Add an empty option so we won't tab complete.
         compopt -o nosort
         COMPREPLY+=('')
-      elif [[ "$specials_line" == "completion "* ]]; then
-        local delegate_cmd="${specials_line#completion }"
+      elif [[ "$specials_line" == "delegate "* ]]; then
+        local delegate_cmd="${specials_line#delegate }"
 
         # split delegate_cmd to get the actual command (first word):
         # this is not reliable but will work for now...
