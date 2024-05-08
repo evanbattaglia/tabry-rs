@@ -20,7 +20,7 @@ _rabry_executable="$_rabry_path/target/debug/rabry"
 
 _rabry_complete_all() {
   [[ -n "$1" ]] && export RABRY_IMPORT_PATH="$1"
-  [[ -x "$_rabry_executable" ]] || return
+  [[ -x "$_rabry_executable" ]] || { echo "rabry_bash.sh: error: can't find rabry executable at $_rabry_executable -- perhaps you need to cd $_rabry_path and cargo build?"; return 1; }
   local oldifs="$IFS"
   IFS=$'\n'
   for cmd in $("$_rabry_executable" commands); do
@@ -33,6 +33,21 @@ _rabry_completions() {
   _rabry_completions_internal "$_rabry_path"/target/debug/rabry
 }
 
+_rabry_set_compreply_from_lines() {
+  # Feed in lines from a variable, quoting each line.
+  # Using readarray is much faster than using += many times to build the array.
+  local lines="$1"
+  local saveifs="$IFS"
+  COMPREPLY=()
+  readarray -t COMPREPLY < <(
+    IFS=$'\n'
+    while IFS= read -r line; do
+      printf '%q\n' "$line"
+    done <<< "$lines"
+    IFS="$saveifs"
+  )
+}
+
 # This is unchanged from tabry, except to remove the second arg
 _rabry_completions_internal()
 {
@@ -43,7 +58,7 @@ _rabry_completions_internal()
   IFS=$'\n'
 
   [[ -n "$TABRY_DEBUG" ]] && printf "%q %q %q %q\n" "$tabry_bash_executable" "$COMP_LINE" "$COMP_POINT"
-  local result=`"$tabry_bash_executable" "$COMP_LINE" "$COMP_POINT"`
+  local result=$("$tabry_bash_executable" "$COMP_LINE" "$COMP_POINT")
   local specials
   local specials_line
 
@@ -55,17 +70,19 @@ _rabry_completions_internal()
     result="$(echo "$result)"|sed '/^$/q')"
 
     # First, add anything before the double newline in (regular options)
-    COMPREPLY=($result)
+    _rabry_set_compreply_from_lines "$result"
 
     while IFS= read -r specials_line; do
       if [[ "$specials_line" == "file" ]]; then
         # File special
         # doesn't seem to be a "plusfiles" like there is for "plusdirs"
+        # TODO check if we need to shellescape
         COMPREPLY+=($(compgen -A file "${COMP_WORDS[$COMP_CWORD]}"))
       elif [[ "$specials_line" == "dir" ]]; then
         # Directory special
         # If there are only directory results, use nospace to not add a space after it,
         # like "cd" tab completion does.
+        # TODO check if we need to shellescape
         [[ ${#COMPREPLY[@]} -eq 0 ]] && compopt -o nospace
         compopt -o plusdirs
       elif [[ "$specials" == "description_if_optionless" ]]; then
@@ -123,7 +140,11 @@ _rabry_completions_internal()
       fi
     done <<< "$specials"
   else
-    COMPREPLY=($result)
+    _rabry_set_compreply_from_lines "$result"
+    COMPREPLY=()
+    while IFS= read -r line; do
+      COMPREPLY+=($(printf "%q" "$line"))
+    done <<< "$result"
   fi
 
   IFS="$saveifs"
