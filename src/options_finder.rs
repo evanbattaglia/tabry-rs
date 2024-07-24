@@ -7,6 +7,8 @@ use super::config::TabryConfError;
 use std::process::Command;
 use std::collections::HashSet;
 
+use serde_json::json;
+
 pub struct OptionsFinder {
     result: TabryResult,
 }
@@ -122,7 +124,19 @@ impl OptionsFinder {
                 TabryOpt::Const { value } => res.insert(value),
                 TabryOpt::Delegate { value } => res.insert_special(format!("delegate {}", value).as_str()),
                 TabryOpt::Shell { value } => {
-                    let output = Command::new("sh").arg("-c").arg(value).output();
+                    let auto_complete_state = json!({
+                        "cmd": self.result.config.cmd,
+                        "flags": self.result.state.flags,
+                        // TODO: these are merged in ruby version.
+                        "flag_args": self.result.state.flag_args,
+                        "args": self.result.state.args,
+                        // current_token. result.prefix???
+                        // "current_flag": self.result.state.current_flag,
+                        // ^ this doesn't seem to exist either for the rust version?
+                    });
+                    let output = Command::new("sh").arg("-c").arg(value)
+                        .env("TABRY_AUTOCOMPLETE_STATE", auto_complete_state.to_string())
+                        .output();
                     // TODO bubble up errors instead on unwrap()
                     let output_bytes = output.unwrap();
                     let output_str = std::str::from_utf8(&output_bytes.stdout[..]).unwrap();
