@@ -99,7 +99,7 @@ impl TabryConf {
 
         let vecofvecs = subs.iter().map(|sub|
             match sub {
-                TabrySub::TabryIncludeArg { include } => {
+                TabrySub::TabryIncludeSub { include } => {
                     // Lookup include, which may return an error
                     let inc = self.get_arg_include(include)?;
                     // Flatten the include's subs recursively (which may return an error)

@@ -19,7 +19,7 @@ pub fn import_path() -> String {
 pub fn find_tabry_config(command_name: &str) -> Result<String, ConfigFinderError> {
     for import_dir in import_path().split(":") {
         for ext in &EXTENSIONS {
-            let mut path = std::path::PathBuf::from(import_dir.clone());
+            let mut path = std::path::PathBuf::from(import_dir);
             path.push(format!("{}{}", command_name, ext));
             let path = path.to_str().unwrap();
             // if exists:

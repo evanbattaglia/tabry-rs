@@ -6,7 +6,7 @@ Tabry is a program (and optionally, a mini-language) that allows you to easily c
 ```
 cmd zellij
 
-sub (a,attach d,delete-session k,kill-session) @arg-session
+sub a,attach @arg-session
 sub da,delete-all-sessions
 sub ka,kill-all-sessions
 sub e,edit
@@ -20,6 +20,7 @@ defargs @arg-session {
 
 # Installation
 
+* TODO -- above example should be "sub (a,attach d,delete-session k,kill-session) @arg-session" -- need sub (a b c) and comments feature parity
 * TODO -- Nix derivation and builtin tabry_bash.sh script
 * TODO -- fish completion (port from ruby tabry)
 

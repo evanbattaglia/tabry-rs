@@ -1,7 +1,8 @@
 use anyhow::Context;
 
+use std::io::Read;
+
 use tabry::{
-    lang::ast,
     app::{
         cached_jsons,
         config_finder,
@@ -16,6 +17,8 @@ use tabry::{
         options_finder,
     }
 };
+
+// can maybe move some/most of this to app module?
 
 fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> anyhow::Result<()> {
     let config = config::TabryConf::from_file(&config_filename).with_context(|| "invalid config file")?;
@@ -96,16 +99,10 @@ fn usage(cmd_name: Option<&str>) {
 }
 
 fn compile() {
-    // TODO
-    let ast = ast::parse("
-        cmd control-vehicle
-        arg {
-          opts const car
-        }
-    ");
-    let ast = ast.unwrap();
-    let config = tabry::lang::translator::translate(&ast);
-    let json = serde_json::to_string(&config);
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).unwrap();
+    let tabry_conf = tabry::lang::compile(&input);
+    let json = serde_json::to_string_pretty(&tabry_conf);
     print!("{}", json.unwrap());
 }
 
