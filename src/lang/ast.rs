@@ -77,14 +77,14 @@ pub mod grammar {
         #[rust_sitter::leaf(text = "opts")]
         _opts: (),
         #[rust_sitter::leaf(text = "const")]
-        _shell: (),
+        _const: (),
         value: TabryString,
       },
       Delegate {
         #[rust_sitter::leaf(text = "opts")]
         _opts: (),
         #[rust_sitter::leaf(text = "delegate")]
-        _shell: (),
+        _delegate: (),
         value: TabryString,
       },
     }

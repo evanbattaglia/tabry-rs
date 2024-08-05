@@ -61,10 +61,8 @@ fn run_as_args() -> anyhow::Result<()> {
 */
 
 // This runs using the filename plus 2nd arg as compline (shellsplits ARGV[2])
-fn run_as_compline(args: &Vec<String>) -> anyhow::Result<()> {
+fn run_as_compline(compline: &str, comppoint: &str) -> anyhow::Result<()> {
     // TODO can maybe use match to simplify this
-    let compline = args.get(1).with_context(|| "missing compline")?;
-    let comppoint = args.get(2).with_context(|| "missing comppoint")?;
     let comppoint = comppoint.parse::<usize>()?;
 
     let tokenized_result = shell_tokenizer::split_with_comppoint(compline, comppoint)?;
@@ -79,15 +77,35 @@ fn run_as_compline(args: &Vec<String>) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn usage(cmd_name: Option<&str>) {
+    let cmd_name: &str = cmd_name.unwrap_or("rabry");
+    eprintln!("Usage: {} <compline> <comppoint>", cmd_name);
+    eprintln!("  get completions. usually used via rabry_bash.sh");
+    eprintln!("Usage: {} commands", cmd_name);
+    eprintln!("  list all commands that rabry can find configs for");
+    eprintln!("Usage: {} compile < file.tabry > file.json", cmd_name);
+    eprintln!("  compile a tabry file to json");
+    std::process::exit(1);
+}
+
+fn compile() {
+}
+
+fn commands() {
+    for command in config_finder::all_supported_commands().unwrap() {
+        println!("{}", command);
+    }
+}
+
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
-    if args.len() == 2 && args.get(1).unwrap() == "commands" {
-        for command in config_finder::all_supported_commands().unwrap() {
-            println!("{}", command);
-        }
-        std::process::exit(0);
+    let args_strs = args.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+    match args_strs.as_slice() {
+        [_, "compile"] => compile(),
+        [_, "commands"] => commands(),
+        [_, compline, comppoint] => run_as_compline(compline, comppoint).unwrap(),
+        _ => usage(args_strs.get(0).copied())
     }
-    run_as_compline(&args).unwrap();
 }
 
 
