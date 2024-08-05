@@ -1,15 +1,15 @@
-// find *.tabry of *.json for command in RABRY_CONFIG_PATH
+// find *.tabry of *.json for command in TABRY_CONFIG_PATH
 
 use thiserror::Error;
 const EXTENSIONS: [&str; 2] = [".tabry", ".json"];
 
 #[derive(Error, Debug)]
-#[error("config for {0} cannot be found in RABRY_IMPORT_PATH ({1})")]
+#[error("config for {0} cannot be found in TABRY_IMPORT_PATH ({1})")]
 pub struct ConfigFinderError(String, String);
 
 
 pub fn import_path() -> String {
-    let mut import_path = std::env::var("RABRY_IMPORT_PATH").unwrap_or("".to_owned());
+    let mut import_path = std::env::var("TABRY_IMPORT_PATH").unwrap_or("".to_owned());
     if import_path == "" {
         import_path = "./".to_owned();
     }

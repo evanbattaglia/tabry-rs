@@ -5,35 +5,36 @@
 
 ####
 
+# TODO make this part of executable maybe so people can just install tabry and run 'tabry bash'?
+
 # USAGE:
 # 1. Put the following you your .bash_profile:
-#      source /my/path/to/rabry_bash.sh && _rabry_complete_all ~/.tabry
+#      source /my/path/to/tabry_bash.sh && _tabry_complete_all ~/.tabry
 #    (You can use multiple colon-separated strings if you want)
 # 2. Put *.tabry and/or compiled *.json configs in the ~/.tabry directory. If you
-#   are using *.tabry files, currently you'll also need to have the tabry
-#   compiler (tabryc) installed and in the path too (rabry will compile and
+#   are using *.tabry files, tabry will installed and in the path too (tabry will compile and
 #   cache the results)
 # 3. Enjoy your completions!
 
-_rabry_path=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-_rabry_executable="$_rabry_path/target/debug/rabry"
+_tabry_path=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+_tabry_executable="$_tabry_path/target/debug/tabry"
 
-_rabry_complete_all() {
-  [[ -n "$1" ]] && export RABRY_IMPORT_PATH="$1"
-  [[ -x "$_rabry_executable" ]] || { echo "rabry_bash.sh: error: can't find rabry executable at $_rabry_executable -- perhaps you need to cd $_rabry_path and cargo build?"; return 1; }
+_tabry_complete_all() {
+  [[ -n "$1" ]] && export TABRY_IMPORT_PATH="$1"
+  [[ -x "$_tabry_executable" ]] || { echo "tabry_bash.sh: error: can't find tabry executable at $_tabry_executable -- perhaps you need to cd $_tabry_path and cargo build?"; return 1; }
   local oldifs="$IFS"
   IFS=$'\n'
-  for cmd in $("$_rabry_executable" commands); do
-      complete -F _rabry_completions $cmd
+  for cmd in $("$_tabry_executable" commands); do
+      complete -F _tabry_completions $cmd
   done
   IFS="$oldifs"
 }
 
-_rabry_completions() {
-  _rabry_completions_internal "$_rabry_path"/target/debug/rabry
+_tabry_completions() {
+  _tabry_completions_internal "$_tabry_path"/target/debug/tabry
 }
 
-_rabry_set_compreply_from_lines() {
+_tabry_set_compreply_from_lines() {
   # Feed in lines from a variable, quoting each line.
   # Using readarray is much faster than using += many times to build the array.
   local lines="$1"
@@ -48,8 +49,8 @@ _rabry_set_compreply_from_lines() {
   )
 }
 
-# This is unchanged from tabry, except to remove the second arg
-_rabry_completions_internal()
+# This is unchanged from ruby tabry, except to remove the second arg
+_tabry_completions_internal()
 {
   local tabry_bash_executable="$1"
 
@@ -70,7 +71,7 @@ _rabry_completions_internal()
     result="$(echo "$result)"|sed '/^$/q')"
 
     # First, add anything before the double newline in (regular options)
-    _rabry_set_compreply_from_lines "$result"
+    _tabry_set_compreply_from_lines "$result"
 
     while IFS= read -r specials_line; do
       if [[ "$specials_line" == "file" ]]; then
@@ -140,7 +141,7 @@ _rabry_completions_internal()
       fi
     done <<< "$specials"
   else
-    _rabry_set_compreply_from_lines "$result"
+    _tabry_set_compreply_from_lines "$result"
     COMPREPLY=()
     while IFS= read -r line; do
       COMPREPLY+=($(printf "%q" "$line"))

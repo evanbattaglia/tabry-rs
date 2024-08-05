@@ -1,6 +1,7 @@
 use anyhow::Context;
 
-use rabry::{
+use tabry::{
+    lang::ast,
     cached_jsons,
     config,
     config_finder,
@@ -78,17 +79,28 @@ fn run_as_compline(compline: &str, comppoint: &str) -> anyhow::Result<()> {
 }
 
 fn usage(cmd_name: Option<&str>) {
-    let cmd_name: &str = cmd_name.unwrap_or("rabry");
+    let cmd_name: &str = cmd_name.unwrap_or("tabry");
     eprintln!("Usage: {} <compline> <comppoint>", cmd_name);
-    eprintln!("  get completions. usually used via rabry_bash.sh");
+    eprintln!("  get completions. usually used via tabry_bash.sh");
     eprintln!("Usage: {} commands", cmd_name);
-    eprintln!("  list all commands that rabry can find configs for");
+    eprintln!("  list all commands that tabry can find configs for");
     eprintln!("Usage: {} compile < file.tabry > file.json", cmd_name);
     eprintln!("  compile a tabry file to json");
     std::process::exit(1);
 }
 
 fn compile() {
+    // TODO
+    let ast = ast::parse("
+        cmd control-vehicle
+        arg {
+          opts const car
+        }
+    ");
+    let ast = ast.unwrap();
+    let config = tabry::lang::translator::translate(&ast);
+    let json = serde_json::to_string(&config);
+    print!("{}", json.unwrap());
 }
 
 fn commands() {
