@@ -1,7 +1,11 @@
+// The state machine responsible for parsing command line arguments and identifying
+// subcommands, flags, and positional arguments.
+
 use std::mem::swap;
 
-use super::config::TabryConfError;
-use super::config::TabryConf;
+use crate::core::config::TabryConfError;
+use crate::core::config::TabryConf;
+use crate::core::util::is_debug;
 
 use super::machine_state::{MachineState, MachineStateMode};
 use super::token_matching::TokenMatching;
@@ -20,7 +24,7 @@ impl Machine {
         Machine {
             config,
             state: MachineState::default(),
-            log: super::util::is_debug()
+            log: is_debug()
         }
     }
 

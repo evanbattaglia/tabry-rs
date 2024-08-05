@@ -1,6 +1,5 @@
 use super::ast;
-use crate::types;
-use crate::config;
+use crate::core::{types, config};
 
 use std::collections::HashMap;
 

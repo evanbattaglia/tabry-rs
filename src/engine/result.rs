@@ -1,7 +1,9 @@
-use super::config::TabryConf;
+use crate::core::{
+    config::TabryConf,
+    types::TabryConcreteSub,
+};
 use super::machine_state::MachineState;
 
-use super::types::TabryConcreteSub;
 
 /// Encapsulates a TabryConfig and a TabryMachineState state, and provides
 /// functionality relating to this state.

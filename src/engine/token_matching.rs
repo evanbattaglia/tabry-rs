@@ -1,4 +1,4 @@
-use super::types::*;
+use crate::core::types::*;
 
 /// Code for token matching that depends only on the type.
 /// Used by the machine, broken out to help keep machine smaller.

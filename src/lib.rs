@@ -1,14 +1,16 @@
-// TODO: expose less
-// TODO move engine stuff to engine module
-pub mod cached_jsons;
-pub mod config;
-pub mod config_finder;
+// TODO: expose less?
+
+// Code shared between different Tabry components (language, app, engine, etc.)
+// Mainly having to do with types used across all of tabry
+pub mod core;
+
+// Code which takes a tabry config and arguments to be parsed, parses command line arguments
+// (identifying flags/arguments/subcommands) and generates options. The "machine" is the core of
+// this.
+pub mod engine;
+
+// Higher-level code used in the `tabry` options-finding application.
+pub mod app;
+
+// The tabry language parser (compiler)
 pub mod lang;
-pub mod machine;
-pub mod machine_state;
-pub mod options_finder;
-pub mod result;
-pub mod shell_tokenizer;
-pub mod token_matching;
-pub mod types;
-pub mod util;

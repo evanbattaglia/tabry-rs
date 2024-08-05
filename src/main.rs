@@ -2,13 +2,19 @@ use anyhow::Context;
 
 use tabry::{
     lang::ast,
-    cached_jsons,
-    config,
-    config_finder,
-    machine,
-    options_finder,
-    shell_tokenizer,
-    util,
+    app::{
+        cached_jsons,
+        config_finder,
+        shell_tokenizer,
+    },
+    core::{
+        config,
+        util,
+    },
+    engine::{
+        machine,
+        options_finder,
+    }
 };
 
 fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> anyhow::Result<()> {
