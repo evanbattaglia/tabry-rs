@@ -112,18 +112,22 @@ fn commands() {
     }
 }
 
+fn escape(s: &str) -> String {
+    // replace single quote with ' '"'"' to escape it in bash:
+    format!("'{}'", s.replace("'", "'\"'\"'"))
+}
+
+fn escaped_exe() -> String {
+    escape(std::env::current_exe().unwrap().to_str().unwrap())
+}
+
 const TABRY_BASH_SH: &str = include_str!("../shell/tabry_bash.sh");
 fn bash(imports_path: Option<&&str>) {
     if let Some(path) = imports_path {
-        let path_escaped = path.replace("'", "'\"'\"'");
-        print!("_tabry_rs_imports_path='{}'\n", path_escaped);
+        print!("_tabry_rs_imports_path='{}'\n", escape(path));
     }
 
-    // Get path to currently running executable:
-    let exe_path = std::env::current_exe().unwrap();
-    // replace single quote with ' '"'"' to escape it in bash:
-    let exe_path = exe_path.to_str().unwrap().replace("'", "'\"'\"'");
-    print!("_tabry_rs_executable='{}'\n", exe_path);
+    print!("_tabry_rs_executable='{}'\n", escaped_exe());
     print!("{}", TABRY_BASH_SH);
 }
 

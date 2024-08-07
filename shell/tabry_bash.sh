@@ -160,5 +160,5 @@ _tabry_rs_completions_internal()
 if [[ $# -gt 0 ]]; then
   _tabry_rs_complete_all "$1"
 else
-  _tabry_rs_complete_all ${_tabry_ts_imports_path:-~/.tabry}
+  _tabry_rs_complete_all ${_tabry_rs_imports_path:-~/.local/share/tabry}
 fi

@@ -19,18 +19,20 @@ defargs @arg-session {
 
 # Installation
 
-* TODO -- Nix derivation and builtin tabry_bash.sh script
+* TODO -- Nix derivation
 * TODO -- fish completion (port from ruby tabry)
 
 ```bash
-git checkout https://github.com/evanbattaglia/tabry-rs
-cargo build
-cat >> ~/.bash_profile <<EOF
-  source /my/path/to/tabry_bash.sh && _tabry_complete_all ~/.tabry
-EOF
-mkdir -p ~/.tabry
-vi ~/.tabry/zellij.tabry # copy the above example into this file
+# Install:
+cargo install --git https://github.com/evanbattaglia/tabry-rs
+# ^^^ tabry is now installed to ~/.cargo/bin, which should be in your path
+echo 'source <(tabry bash)' >> ~/.bash_profile
 
+# Add a completion
+mkdir -p ~/.local/share/tabry
+vi ~/.local/share/tabry/zellij.tabry # copy the above example into this file
+
+# Test it out:
 source ~/.bash_profile # or open a new terminal
 zellij #<tab> should now show completions
 ```
