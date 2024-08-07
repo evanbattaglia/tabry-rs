@@ -40,16 +40,23 @@ fn parse_identifier<'a>(i: &mut &'a [Token]) -> PResult<&'a str> {
         })
 }
 
-fn parse_identifier_and_aliases<'a>(i: &mut &'a [Token]) -> PResult<Vec<&'a str>> {
-    any
+fn parse_identifier_and_aliases<'a>(i: &mut &'a [Token]) -> PResult<NameAndAliases> {
+    let id_and_aliases = any
         .verify(|t| matches!(t, Token::Identifier(_) | Token::IdentifierWithAliases(_)))
         .context(StrContext::Expected(StrContextValue::Description("identifier or identifier with aliases")))
-        .parse_next(i)
-        .map(|t| match t {
-            Token::Identifier(s) => vec![s],
-            Token::IdentifierWithAliases(v) => v,
-            _ => unreachable!(),
-        })
+        .parse_next(i)?;
+
+    let (name, aliases) = match id_and_aliases {
+      Token::Identifier(s) => (s.to_string(), vec![]),
+      Token::IdentifierWithAliases(v) => {
+        let name = v.get(0).unwrap().to_string();
+        let aliases = v[1..].iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        (name, aliases)
+      },
+      _ => unreachable!(),
+    };
+
+    Ok(NameAndAliases { name, aliases })
 }
 
 fn parse_string_literal<'a>(i: &mut &'a [Token]) -> PResult<String> {
@@ -78,15 +85,14 @@ fn parse_at_identifiers<'a>(i: &mut &'a [Token]) -> PResult<Vec<&'a str>> {
     repeat(0.., parse_at_identifier).parse_next(i)
 }
 
-
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TabryFile {
     pub statements: Vec<Statement>
 }
 
 // =========== SIMPLE STATEMENTS (CAN'T TAKE A BLOCK) ===========
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CmdStatement {
     pub name: String,
 }
@@ -97,7 +103,7 @@ fn parse_cmd_statement<'a>(i: &mut &'a [Token]) -> PResult<CmdStatement> {
     Ok(CmdStatement { name: name.to_string() })
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DescStatement {
     pub desc: String,
 }
@@ -108,7 +114,7 @@ fn parse_desc_statement<'a>(i: &mut &'a [Token]) -> PResult<DescStatement> {
     Ok(DescStatement { desc })
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TitleStatement {
     pub title: String,
 }
@@ -119,7 +125,7 @@ fn parse_title_statement<'a>(i: &mut &'a [Token]) -> PResult<TitleStatement> {
     Ok(TitleStatement { title })
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct IncludeStatement {
     pub includes: Vec<String>,
 }
@@ -132,7 +138,7 @@ fn parse_include_statement<'a>(i: &mut &'a [Token]) -> PResult<IncludeStatement>
     Ok(IncludeStatement { includes })
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum OptsStatement {
     File,
     Dir,
@@ -141,7 +147,21 @@ pub enum OptsStatement {
     Delegate { value: String },
 }
 
-fn parse_opts_const_options<'a>(i: &mut &'a [Token]) -> PResult<Vec<String>> {
+// TODO: optimization would be to do an Either<Vec<String>, Vec<Vec<String>> since most of the time
+// it's only 1
+// TODO: should really handle strings so can do special characters "foo!,bar!" as ["foo", "bar"]? and "foo!","bar!"?
+fn parse_identifier_and_aliases_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<NameAndAliases>> {
+    alt((
+            parse_identifier_and_aliases.map(|v| vec![v]),
+            delimited(
+                Token::OpenParen,
+                repeat(1.., parse_identifier_and_aliases),
+                Token::CloseParen
+            )
+    )).parse_next(i)
+}
+
+fn parse_opts_id_string_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<String>> {
     alt((
         // opts const foo
         parse_string_literal.map(|s| vec![s]),
@@ -170,7 +190,7 @@ fn parse_opts_statement<'a>(i: &mut &'a [Token]) -> PResult<OptsStatement> {
                 Token::Identifier("dir").map(|_| OptsStatement::Dir),
                 seq!(OptsStatement::Const {
                     _: Token::Identifier("const"),
-                    values: parse_opts_const_options
+                    values: parse_opts_id_string_or_list
                 }),
                 seq!(OptsStatement::Shell {
                     _: Token::Identifier("shell"),
@@ -188,7 +208,7 @@ fn parse_opts_statement<'a>(i: &mut &'a [Token]) -> PResult<OptsStatement> {
 
 // ============ SUB, FLAG, ARG, DEFARGS, DEFOPTS STATEMENTS (CAN TAKE A BLOCK) ============
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DefArgsStatement {
     pub name: String,
     pub statements: Vec<Statement>,
@@ -208,7 +228,7 @@ fn parse_defargs_statement<'a>(i: &mut &'a [Token]) -> PResult<DefArgsStatement>
     }).parse_next(i)
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DefOptsStatement {
     pub name: String,
     pub statements: Vec<Statement>,
@@ -228,20 +248,25 @@ fn parse_defopts_statement<'a>(i: &mut &'a [Token]) -> PResult<DefOptsStatement>
     }).parse_next(i)
 }
 
-#[derive(Debug)]
-pub struct SubStatement {
+#[derive(Clone, Debug)]
+pub struct NameAndAliases {
     pub name: String,
     pub aliases: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct SubStatement {
+    pub names_and_aliases: Vec<NameAndAliases>,
     pub description: Option<String>,
     pub includes: Vec<String>,
     pub statements: Vec<Statement>,
 }
 
 fn parse_sub_statement<'a>(i: &mut &'a[Token]) -> PResult<SubStatement> {
-    let (id_and_aliases, description, includes, statements_in_block) = seq!(
+    let (names_and_aliases, description, includes, statements_in_block) = seq!(
       _: Token::Identifier("sub"),
-      parse_identifier_and_aliases
-          .context(StrContext::Label("sub name and aliases")),
+      parse_identifier_and_aliases_or_list
+          .context(StrContext::Label("sub name and aliases or list of sub names and aliases")),
       opt(parse_string_literal),
       parse_at_identifiers,
       opt(
@@ -254,14 +279,13 @@ fn parse_sub_statement<'a>(i: &mut &'a[Token]) -> PResult<SubStatement> {
           )
       )
     ).parse_next(i)?;
-    let name = id_and_aliases.get(0).unwrap().to_string();
-    let aliases = id_and_aliases[1..].iter().map(|s| s.to_string()).collect::<Vec<_>>();
+
     let includes = includes.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     let statements = statements_in_block.unwrap_or_default();
-    Ok(SubStatement { name, aliases, includes, description, statements })
+    Ok(SubStatement { names_and_aliases, includes, description, statements })
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ArgStatement {
     pub name: Option<String>,
     pub optional: bool,
@@ -303,26 +327,25 @@ fn parse_arg_statement<'a>(i: &mut &'a[Token]) -> PResult<ArgStatement> {
     })
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FlagStatement {
-    pub name: String,
+    pub names_and_aliases: Vec<NameAndAliases>,
     pub required: bool,
     pub has_arg: bool,
-    pub aliases: Vec<String>,
     pub description: Option<String>,
     pub includes: Vec<String>,
     pub statements: Vec<Statement>,
 }
 
 fn parse_flag_statement<'a>(i: &mut &'a[Token]) -> PResult<FlagStatement> {
-    let (required, has_arg, id_and_aliases, description, includes, statements_in_block) = seq!(
+    let (required, has_arg, names_and_aliases, description, includes, statements_in_block) = seq!(
       opt(Token::Identifier("reqd")).map(|t| t.is_some()),
       alt((
           Token::Identifier("flag"),
           Token::Identifier("flagarg")
       )).map(|t| t.is_identifier("flagarg")),
-      parse_identifier_and_aliases
-          .context(StrContext::Label("flag name and aliases")),
+      parse_identifier_and_aliases_or_list
+          .context(StrContext::Label("flag name and aliases or list of sub names and aliases")),
       opt(parse_string_literal),
       parse_at_identifiers,
       opt(
@@ -336,15 +359,12 @@ fn parse_flag_statement<'a>(i: &mut &'a[Token]) -> PResult<FlagStatement> {
       )
     ).parse_next(i)?;
     // TODO dry up with parse_sub_statement
-    let name = id_and_aliases.get(0).unwrap().to_string();
-    let aliases = id_and_aliases[1..].iter().map(|s| s.to_string()).collect::<Vec<_>>();
     let includes = includes.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     Ok(FlagStatement {
-        name,
+        names_and_aliases,
         has_arg,
         includes,
         description,
-        aliases,
         required,
         statements: statements_in_block.unwrap_or_default(),
     })
@@ -353,7 +373,7 @@ fn parse_flag_statement<'a>(i: &mut &'a[Token]) -> PResult<FlagStatement> {
 
 // =========== STATEMENT ENUMS (BASED ON CONTEXT) ===========
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Statement {
     // in top-level, sub, arg, flag, defargs, defopts
     Include(IncludeStatement),

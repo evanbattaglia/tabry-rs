@@ -8,7 +8,7 @@ use winnow::combinator::preceded;
 use winnow::PResult;
 use winnow::Parser;
 use winnow::{
-    ascii::multispace0,
+    ascii::multispace1,
     combinator::repeat,
     combinator::peek,
     error::ErrMode,
@@ -108,13 +108,20 @@ fn token<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
         '{' => "{".value(Token::OpenBrace),
         '}' => "}".value(Token::CloseBrace),
         '@' => at_identifier,
-        '#' => comment, // TODO need a way to somehow ignore comments
+        //'#' => comment.void().map(|_| None),
         _ => identifier_with_optional_aliases,
     }.parse_next(i)
 }
 
+fn optional_ignored_text<'a>(i: &mut &'a str) -> PResult<()> {
+    repeat(0.., alt((comment.void(), multispace1.void()))).parse_next(i)
+}
+
 pub fn lex<'a>(i: &mut &'a str) -> PResult<Vec<Token<'a>>> {
-    preceded(multispace0, repeat(1.., terminated(token, multispace0))).parse_next(i)
+    preceded(
+        optional_ignored_text,
+        repeat(1.., terminated(token, optional_ignored_text))
+    ).parse_next(i)
 }
 
 //--- end lexer---
