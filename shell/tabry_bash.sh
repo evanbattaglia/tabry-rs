@@ -7,15 +7,14 @@
 
 ####
 
-# TODO make this part of executable maybe so people can just install tabry and run 'tabry bash'?
-# ^^^ YES, use https://stackoverflow.com/questions/61818515/how-to-include-file-contents-in-rust-compiled-binary
-# and fix _tabry_rs_path in that case to be wherever you're running the binary from
-# could also have a 'wizard' which asks you to put it in your .bash_profile or .bashrc or whatever, if we get it in nixpkgs it could literally be: `, tabry` and you're done.
+# TODO could also have a 'wizard' which asks you to put it in your .bash_profile or .bashrc or whatever, if we get it in nixpkgs it could literally be: `, tabry` which installs it in your bash_profile
 # (home-manager plugin would be nice too.)
 
 # USAGE:
 # 1. Put the following you your .bash_profile:
-#      source /my/path/to/tabry_bash.sh ~/.tabry
+#      source <(tabry bash)
+#    OR
+#      source <(tabry bash ~/.tabry:~/my-tabry-files/)
 #
 #    (You can use multiple colon-separated strings if you want instead of
 #    ~/.tabry)
@@ -23,12 +22,11 @@
 #   are using *.tabry files, tabry will compile and cache the results!
 # 3. Enjoy your completions!
 
-_tabry_rs_path=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-_tabry_rs_executable="$_tabry_rs_path/target/debug/tabry"
+_tabry_rs_executable=${_tabry_rs_executable:-$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"/.. &> /dev/null && pwd)/target/debug/tabry}
 
 _tabry_rs_complete_all() {
   [[ -n "$1" ]] && export TABRY_IMPORT_PATH="$1"
-  [[ -x "$_tabry_rs_executable" ]] || { echo "tabry_bash.sh: error: can't find tabry executable at $_tabry_rs_executable -- perhaps you need to cd $_tabry_rs_path and cargo build?"; return 1; }
+  [[ -x "$_tabry_rs_executable" ]] || { echo "tabry_bash.sh: error: can't find tabry executable at $_tabry_rs_executable -- if you are using the script from source rather than using via 'tabry bash', perhaps you need to run 'cargo build'?"; return 1; }
   local oldifs="$IFS"
   IFS=$'\n'
   for cmd in $("$_tabry_rs_executable" commands); do
@@ -38,7 +36,7 @@ _tabry_rs_complete_all() {
 }
 
 _tabry_rs_completions() {
-  _tabry_rs_completions_internal "$_tabry_rs_path"/target/debug/tabry
+  _tabry_rs_completions_internal "$_tabry_rs_executable"
 }
 
 _tabry_rs_set_compreply_from_lines() {
@@ -161,4 +159,6 @@ _tabry_rs_completions_internal()
 
 if [[ $# -gt 0 ]]; then
   _tabry_rs_complete_all "$1"
+else
+  _tabry_rs_complete_all ${_tabry_ts_imports_path:-~/.tabry}
 fi

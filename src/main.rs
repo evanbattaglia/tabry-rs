@@ -112,12 +112,29 @@ fn commands() {
     }
 }
 
+const TABRY_BASH_SH: &str = include_str!("../shell/tabry_bash.sh");
+fn bash(imports_path: Option<&&str>) {
+    if let Some(path) = imports_path {
+        let path_escaped = path.replace("'", "'\"'\"'");
+        print!("_tabry_rs_imports_path='{}'\n", path_escaped);
+    }
+
+    // Get path to currently running executable:
+    let exe_path = std::env::current_exe().unwrap();
+    // replace single quote with ' '"'"' to escape it in bash:
+    let exe_path = exe_path.to_str().unwrap().replace("'", "'\"'\"'");
+    print!("_tabry_rs_executable='{}'\n", exe_path);
+    print!("{}", TABRY_BASH_SH);
+}
+
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     let args_strs = args.iter().map(|s| s.as_str()).collect::<Vec<_>>();
     match args_strs.as_slice() {
         [_, "compile"] => compile(),
         [_, "commands"] => commands(),
+        [_, "bash"] => bash(None),
+        [_, "bash", imports_path] => bash(Some(imports_path)),
         [_, compline, comppoint] => run_as_compline(compline, comppoint).unwrap(),
         _ => usage(args_strs.get(0).copied())
     }
