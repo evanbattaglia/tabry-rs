@@ -13,7 +13,6 @@ use winnow::{
 };
 
 use super::lexer::Token;
-
 // TODO errors are still hard to figure out, doesn't seem like the context() calls are doing much
 // TODO () in subs and args:
 //   sub (a b c) @waz
@@ -131,11 +130,13 @@ pub struct IncludeStatement {
 }
 
 fn parse_include_statement<'a>(i: &mut &'a [Token]) -> PResult<IncludeStatement> {
-    let includes : Vec<&'a str> =
-            repeat(1.., parse_at_identifier)
-        .parse_next(i)?;
-    let includes = includes.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-    Ok(IncludeStatement { includes })
+    seq!(IncludeStatement {
+        _: Token::Identifier("include"),
+        includes: repeat(
+            1..,
+            parse_at_identifier.map(|s| s.to_string())
+        )
+    }).parse_next(i)
 }
 
 #[derive(Clone, Debug)]
@@ -150,6 +151,7 @@ pub enum OptsStatement {
 // TODO: optimization would be to do an Either<Vec<String>, Vec<Vec<String>> since most of the time
 // it's only 1
 // TODO: should really handle strings so can do special characters "foo!,bar!" as ["foo", "bar"]? and "foo!","bar!"?
+// ^^ I actually use that flag "format=oneline" in a tabry file
 fn parse_identifier_and_aliases_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<NameAndAliases>> {
     alt((
             parse_identifier_and_aliases.map(|v| vec![v]),
