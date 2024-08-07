@@ -48,7 +48,9 @@ _tabry_rs_set_compreply_from_lines() {
   readarray -t COMPREPLY < <(
     IFS=$'\n'
     while IFS= read -r line; do
-      printf '%q\n' "$line"
+      if [[ -n "$line" ]]; then
+        printf '%q\n' "$line"
+      fi
     done <<< "$lines"
     IFS="$saveifs"
   )
