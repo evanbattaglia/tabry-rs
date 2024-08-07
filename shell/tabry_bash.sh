@@ -76,7 +76,7 @@ _tabry_rs_completions_internal()
     result="$(echo "$result)"|sed '/^$/q')"
 
     # First, add anything before the double newline in (regular options)
-    _tabry_set_compreply_from_lines "$result"
+    _tabry_rs_set_compreply_from_lines "$result"
 
     while IFS= read -r specials_line; do
       if [[ "$specials_line" == "file" ]]; then
