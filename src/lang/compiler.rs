@@ -1,12 +1,14 @@
 // Takes the parsed representaiton (parse tree)
 // and constructs the compiled tabry config (JSON-compatible)
 
+use std::collections::HashMap;
+
+use thiserror::Error;
+
 use super::parser;
 use crate::core::config;
 use crate::core::types;
 use crate::core::util::is_debug;
-
-use std::collections::HashMap;
 
 #[inline(always)]
 fn make_new_sub() -> types::TabryConcreteSub {
@@ -187,7 +189,14 @@ fn compile_defopts(stmt: parser::DefOptsStatement) -> (String, Vec<types::TabryO
     (stmt.name, opts)
 }
 
-pub fn compile(tabry_file: parser::TabryFile) -> config::TabryConf {
+// In the future I may provide line numbers in error messages, etc.
+#[derive(Error, Debug)]
+#[error("compile error: {msg}")]
+pub struct CompileError {
+    msg: String,
+}
+
+pub fn compile(tabry_file: parser::TabryFile) -> Result<config::TabryConf, CompileError> {
     let mut conf = config::TabryConf {
         main: make_new_sub(),
         cmd: None,
@@ -207,13 +216,13 @@ pub fn compile(tabry_file: parser::TabryFile) -> config::TabryConf {
             },
             parser::Statement::Cmd(cmd) => {
                 if conf.cmd.is_some() {
+                    return Err(CompileError { msg: "multiple cmd statements found".to_string() });
                     // TODO errors for real
-                    panic!("multiple cmd statements found");
                 }
                 conf.cmd = Some(cmd.name);
             },
             _ => process_statement_inside_sub(&mut conf.main, statement),
         }
     }
-    conf
+    Ok(conf)
 }

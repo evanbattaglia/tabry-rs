@@ -101,7 +101,14 @@ fn usage(cmd_name: Option<&str>) {
 fn compile() {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
-    let tabry_conf = tabry::lang::compile(&input);
+    // TODO: I think this could be improved. maybe eyre will help
+    let tabry_conf = match tabry::lang::compile(&input) {
+        Err(e) => {
+            eprintln!("compile error: {}", e.to_string());
+            std::process::exit(1);
+        },
+        Ok(conf) => conf,
+    };
     let json = serde_json::to_string_pretty(&tabry_conf);
     print!("{}", json.unwrap());
 }
