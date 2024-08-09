@@ -37,6 +37,10 @@ source ~/.bash_profile # or open a new terminal
 zellij #<tab> should now show completions
 ```
 
+# Tabry language
+
+Please see the [documentation in the Ruby project](https://github.com/evanbattaglia/tabry/blob/master/LANGUAGE_REFERENCE.md).
+
 # Project history
 
 This is a port of [Tabry](https://github.com/evanbattaglia/tabry/) completion engine and compiler to Rust. Because Rust avoids the ~75ms (depending on machine, of course) startup time of Node, Ruby, etc., it is natural choice for the completion engine. Going forward I intend this to be the principal implementation of Tabry, at least for compiling and completion purposes. (The Ruby implementation for at least for now remain for the purposes of building Tabry-compatible CLIs). 
