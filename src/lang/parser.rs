@@ -14,8 +14,7 @@ use winnow::{
 
 use super::lexer::Token;
 // TODO errors are still hard to figure out, doesn't seem like the context() calls are doing much
-// TODO () in subs and args:
-//   sub (a b c) @waz
+// TODO () in args:
 //   arg (foo bar ok)
 
 // Takes lex tokens and produces a TabryFile, a parse tree.
@@ -23,6 +22,7 @@ use super::lexer::Token;
 
 // TODO: in this parse tree, anything that comes from Lexer as &'a str, make it a &'a str ehre too
 // (instead of a copied String)
+// although I'm not sure it's worth the headache...
 //--- end lexer---
 
 // Raw tokens / building blocks
@@ -39,14 +39,25 @@ fn parse_identifier<'a>(i: &mut &'a [Token]) -> PResult<&'a str> {
         })
 }
 
+// Matches Identifier, IdentifierWithAliases, String.
+// foo -> name "foo"
+// foo,bar,waz -> name "foo", aliases "bar" and "waz"
+// "foo,bar" -> name "foo,bar"
 fn parse_identifier_and_aliases<'a>(i: &mut &'a [Token]) -> PResult<NameAndAliases> {
     let id_and_aliases = any
-        .verify(|t| matches!(t, Token::Identifier(_) | Token::IdentifierWithAliases(_)))
-        .context(StrContext::Expected(StrContextValue::Description("identifier or identifier with aliases")))
+        .verify(|t|
+            matches!(t,
+                Token::Identifier(_)
+                | Token::IdentifierWithAliases(_)
+                | Token::String(_)
+            )
+        )
+        .context(StrContext::Expected(StrContextValue::Description("identifier/string or identifier with aliases")))
         .parse_next(i)?;
 
     let (name, aliases) = match id_and_aliases {
       Token::Identifier(s) => (s.to_string(), vec![]),
+      Token::String(s) => (s, vec![]),
       Token::IdentifierWithAliases(v) => {
         let name = v.get(0).unwrap().to_string();
         let aliases = v[1..].iter().map(|s| s.to_string()).collect::<Vec<_>>();
@@ -148,16 +159,29 @@ pub enum OptsStatement {
     Delegate { value: String },
 }
 
-// TODO: optimization would be to do an Either<Vec<String>, Vec<Vec<String>> since most of the time
+// TODO: optimization would be to do an Either<Vec<String>, Vec<Vec<String>> since most of the
+// time. same for parse_identifier_or_list below.
 // it's only 1
-// TODO: should really handle strings so can do special characters "foo!,bar!" as ["foo", "bar"]? and "foo!","bar!"?
-// ^^ I actually use that flag "format=oneline" in a tabry file
+// TODO: should really handle strings "foo!","bar!"???? (requires lexer change)
+// Matches: 'foo', '("foo")', '(a,b "c!" d)'
 fn parse_identifier_and_aliases_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<NameAndAliases>> {
     alt((
             parse_identifier_and_aliases.map(|v| vec![v]),
             delimited(
                 Token::OpenParen,
                 repeat(1.., parse_identifier_and_aliases),
+                Token::CloseParen
+            )
+    )).parse_next(i)
+}
+
+// Matches: 'foo', '(foo bar)'
+fn parse_identifier_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<&'a str>> {
+    alt((
+            parse_identifier.map(|v| vec![v]),
+            delimited(
+                Token::OpenParen,
+                repeat(1.., parse_identifier),
                 Token::CloseParen
             )
     )).parse_next(i)
@@ -289,7 +313,7 @@ fn parse_sub_statement<'a>(i: &mut &'a[Token]) -> PResult<SubStatement> {
 
 #[derive(Clone, Debug)]
 pub struct ArgStatement {
-    pub name: Option<String>,
+    pub names: Vec<String>,
     pub optional: bool,
     pub varargs: bool,
     pub description: Option<String>,
@@ -298,35 +322,36 @@ pub struct ArgStatement {
 }
 
 fn parse_arg_statement<'a>(i: &mut &'a[Token]) -> PResult<ArgStatement> {
-    let (optional, varargs, id, description, includes, statements_in_block) = seq!(
-      opt(Token::Identifier("opt")).map(|t| t.is_some()),
-      alt((
-          Token::Identifier("arg"),
-          Token::Identifier("varargs")
-      )).map(|t| t.is_identifier("varargs")),
-      opt(parse_identifier.context(StrContext::Label("arg name"))),
-      opt(parse_string_literal),
-      parse_at_identifiers,
-      opt(
-          delimited(
-              Token::OpenBrace,
-              repeat(0.., parse_statement_inside_arg)
-                  .context(StrContext::Label("arg block"))
-                  .context(StrContext::Expected(StrContextValue::Description("statements"))),
-              Token::CloseBrace
-          )
-      )
+    let (optional, varargs, names, description, includes, statements_in_block) = seq!(
+        opt(Token::Identifier("opt")).map(|t| t.is_some()),
+        alt((
+                Token::Identifier("arg"),
+                Token::Identifier("varargs")
+        )).map(|t| t.is_identifier("varargs")),
+        opt(parse_identifier_or_list.context(StrContext::Label("arg name"))),
+        opt(parse_string_literal),
+        parse_at_identifiers,
+        opt(
+            delimited(
+                Token::OpenBrace,
+                repeat(0.., parse_statement_inside_arg)
+                .context(StrContext::Label("arg block"))
+                .context(StrContext::Expected(StrContextValue::Description("statements"))),
+                Token::CloseBrace
+            )
+        )
     ).parse_next(i)?;
-    let name = id.map(|s| s.to_string());
+    let names : Vec<String> = names.map(|v| v.iter().map(|id| id.to_string()).collect()).unwrap_or_default();
     let includes = includes.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-    Ok(ArgStatement {
-        name,
+    let arg = ArgStatement {
+        names,
         optional,
         varargs,
         includes,
         description,
         statements: statements_in_block.unwrap_or_default(),
-    })
+    };
+    Ok(arg)
 }
 
 #[derive(Clone, Debug)]

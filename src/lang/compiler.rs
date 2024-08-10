@@ -96,31 +96,43 @@ fn add_flags_from_flag_statement(flags: &mut Vec<types::TabryFlag>, stmt: parser
     }
 }
 
-fn compile_arg(stmt: parser::ArgStatement) -> types::TabryArg {
-    let mut arg = types::TabryConcreteArg {
-        name: stmt.name,
-        description: stmt.description,
-        varargs: stmt.varargs,
-        optional: stmt.optional,
-        options: vec![],
-    };
-    add_include_opts(&mut arg.options, stmt.includes);
-    for stmt_in_block in stmt.statements {
-        match stmt_in_block {
-            parser::Statement::Opts(opts_stmt) => add_opts(&mut arg.options, opts_stmt),
-            parser::Statement::Include(include_stmt) => add_include_opts(&mut arg.options, include_stmt.includes),
-            parser::Statement::Title(title_stmt) => {
-                // TODO (not supported in types module yet)
-                // for now this avoids the 'unused' warning for Title.title
-                if is_debug() {
-                    eprintln!("ignoring title: {:?}", title_stmt.title);
-                }
-            },
-            parser::Statement::Desc(_desc_stmt) => {}, // TODO (not supported in types module yet)
-            _ => unreachable!("unhandled statement in compile_arg: {:?}", stmt_in_block),
+fn make_arg(stmt: &parser::ArgStatement, name: Option<String>) -> types::TabryArg {
+        let mut arg = types::TabryConcreteArg {
+            name,
+            description: stmt.description.clone(),
+            varargs: stmt.varargs.clone(),
+            optional: stmt.optional,
+            options: vec![],
+        };
+        add_include_opts(&mut arg.options, stmt.includes.clone());
+        for stmt_in_block in stmt.statements.clone() {
+            match stmt_in_block {
+                parser::Statement::Opts(opts_stmt) => add_opts(&mut arg.options, opts_stmt),
+                parser::Statement::Include(include_stmt) => add_include_opts(&mut arg.options, include_stmt.includes),
+                parser::Statement::Title(title_stmt) => {
+                    // TODO (not supported in types module yet)
+                    // for now this avoids the 'unused' warning for Title.title
+                    if is_debug() {
+                        eprintln!("ignoring title: {:?}", title_stmt.title);
+                    }
+                },
+                parser::Statement::Desc(_desc_stmt) => {}, // TODO (not supported in types module yet)
+                _ => unreachable!("unhandled statement in compile_arg: {:?}", stmt_in_block),
+            }
+        }
+        types::TabryArg::TabryConcreteArg(arg)
+}
+
+fn add_args_from_arg_statement(args: &mut Vec<types::TabryArg>, stmt: parser::ArgStatement) {
+    if stmt.names.len() == 0 {
+        args.push(make_arg(&stmt, None));
+    } else {
+        for name in &stmt.names {
+            // TODO lots of unnecessary duping to hack around borrow checker, I'm sure there are
+            // better ways
+            args.push(make_arg(&stmt, Some(name.to_string())));
         }
     }
-    types::TabryArg::TabryConcreteArg(arg)
 }
 
 fn add_sub_arg_flag_includes(
@@ -144,7 +156,7 @@ fn process_statement_inside_sub_or_defargs(
 ) {
     match statement {
         parser::Statement::Sub(child_sub_stmt) => add_subs_from_sub_statement(subs, child_sub_stmt),
-        parser::Statement::Arg(arg_stmt) => args.push(compile_arg(arg_stmt)),
+        parser::Statement::Arg(arg_stmt) => add_args_from_arg_statement(args, arg_stmt),
         parser::Statement::Flag(flag_stmt) => add_flags_from_flag_statement(flags, flag_stmt),
         parser::Statement::Include(include_stmt) =>
             add_sub_arg_flag_includes(subs, args, flags, include_stmt.includes),

@@ -16,15 +16,12 @@ use winnow::{
 };
 use winnow::combinator::dispatch;
 
-// TODO comments
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token<'a> {
     OpenParen,
     CloseParen,
     OpenBrace,
     CloseBrace,
-    Comment,
     Identifier(&'a str), // including keywords
     IdentifierWithAliases(Vec<&'a str>),
     AtIdentifier(&'a str),
@@ -93,11 +90,8 @@ fn at_identifier<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
     Ok(Token::AtIdentifier(id))
 }
 
-fn comment<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
-    // TODO haven't tested this yet, and westill need a way to ignore comments
-    // maybe there's a way we don't need the dummy token
-    let (_, _) = ("#", take_while(1.., |c: char| c != '\n')).parse_next(i)?;
-    Ok(Token::Comment)
+fn comment<'a>(i: &mut &'a str) -> PResult<()> {
+    ("#", take_while(1.., |c: char| c != '\n')).void().parse_next(i)
 }
 
 fn token<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
@@ -108,7 +102,6 @@ fn token<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
         '{' => "{".value(Token::OpenBrace),
         '}' => "}".value(Token::CloseBrace),
         '@' => at_identifier,
-        //'#' => comment.void().map(|_| None),
         _ => identifier_with_optional_aliases,
     }.parse_next(i)
 }
