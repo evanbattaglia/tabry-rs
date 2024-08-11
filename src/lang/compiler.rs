@@ -33,7 +33,7 @@ fn add_subs_from_sub_statement(subs: &mut Vec<types::TabrySub>, stmt: parser::Su
         // TODO potential optimization: don't clone any of these if only one. ESPECIALLY cloning
         // the whole statement. maybe I should pass a reference that can be copied, but would have
         // to change references all the way down
-        sub.description = stmt.description.clone();
+        sub.description.clone_from(&stmt.description);
         add_sub_arg_flag_includes(&mut sub.subs, &mut sub.args, &mut sub.flags, stmt.includes.clone());
         for stmt_in_block in &stmt.statements {
             process_statement_inside_sub(&mut sub, stmt_in_block.clone());
@@ -100,7 +100,7 @@ fn make_arg(stmt: &parser::ArgStatement, name: Option<String>) -> types::TabryAr
         let mut arg = types::TabryConcreteArg {
             name,
             description: stmt.description.clone(),
-            varargs: stmt.varargs.clone(),
+            varargs: stmt.varargs,
             optional: stmt.optional,
             options: vec![],
         };
@@ -124,7 +124,7 @@ fn make_arg(stmt: &parser::ArgStatement, name: Option<String>) -> types::TabryAr
 }
 
 fn add_args_from_arg_statement(args: &mut Vec<types::TabryArg>, stmt: parser::ArgStatement) {
-    if stmt.names.len() == 0 {
+    if stmt.names.is_empty() {
         args.push(make_arg(&stmt, None));
     } else {
         for name in &stmt.names {

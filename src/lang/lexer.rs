@@ -55,7 +55,7 @@ fn string_fragment(i: &mut &str) -> PResult<String> {
 
 fn string_internals(i: &mut &str) -> PResult<String> {
     repeat(1.., string_fragment)
-        .fold(|| String::new(), |mut acc, s| {
+        .fold(String::new, |mut acc, s| {
             acc.push_str(&s);
             acc
         }).parse_next(i)
@@ -78,7 +78,7 @@ fn identifier_with_aliases<'a>(i: &mut &'a str) -> PResult<Vec<&'a str>> {
 fn identifier_with_optional_aliases<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
     identifier_with_aliases.parse_next(i).map(|id| {
         if id.len() == 1 {
-            Token::Identifier(id.get(0).unwrap())
+            Token::Identifier(id.first().unwrap())
         } else {
             Token::IdentifierWithAliases(id)
         }
@@ -90,7 +90,7 @@ fn at_identifier<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
     Ok(Token::AtIdentifier(id))
 }
 
-fn comment<'a>(i: &mut &'a str) -> PResult<()> {
+fn comment(i: &mut &str) -> PResult<()> {
     ("#", take_while(1.., |c: char| c != '\n')).void().parse_next(i)
 }
 
@@ -106,7 +106,7 @@ fn token<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
     }.parse_next(i)
 }
 
-fn optional_ignored_text<'a>(i: &mut &'a str) -> PResult<()> {
+fn optional_ignored_text(i: &mut &str) -> PResult<()> {
     repeat(0.., alt((comment.void(), multispace1.void()))).parse_next(i)
 }
 

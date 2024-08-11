@@ -36,7 +36,8 @@ mod tests {
             aliases: vec!["f".to_owned(), "foobar".to_owned()],
             options: vec![],
             arg: false,
-            required: false
+            required: false,
+            description: Some("foo".into())
         }
     }
 

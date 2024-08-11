@@ -70,7 +70,7 @@ impl OptionsFinder {
         }
 
         let opaque_subs = &self.result.current_sub().subs;
-        let concrete_subs = self.result.config.flatten_subs(&opaque_subs).unwrap();
+        let concrete_subs = self.result.config.flatten_subs(opaque_subs).unwrap();
         for s in concrete_subs {
             // TODO: error here if no name -- only allowable for top level
             res.insert(s.name.as_ref().unwrap());
@@ -105,7 +105,7 @@ impl OptionsFinder {
         }
 
         // Don't suggest flags unless user has typed a dash
-        if !res.prefix.starts_with("-") {
+        if !res.prefix.starts_with('-') {
             return Ok(());
         }
 
@@ -144,8 +144,8 @@ impl OptionsFinder {
                     // TODO bubble up errors instead on unwrap()
                     let output_bytes = output.unwrap();
                     let output_str = std::str::from_utf8(&output_bytes.stdout[..]).unwrap();
-                    for line in output_str.split("\n") {
-                        if line != "" {
+                    for line in output_str.split('\n') {
+                        if !line.is_empty() {
                             res.insert(line);
                         }
                     }
@@ -165,7 +165,7 @@ impl OptionsFinder {
         if let Some(arg) = sub_args.get(self.result.state.args.len()) {
             self.add_options(res, &arg.options)?;
         } else if let Some(TabryConcreteArg{varargs: true, options, ..}) = sub_args.last() {
-            self.add_options(res, &options)?;
+            self.add_options(res, options)?;
         }
 
         Ok(())

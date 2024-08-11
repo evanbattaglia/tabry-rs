@@ -21,18 +21,15 @@ use tabry::{
 // can maybe move some/most of this to app module?
 
 fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> anyhow::Result<()> {
-    let config = config::TabryConf::from_file(&config_filename).with_context(|| "invalid config file")?;
-    let mut machine = machine::Machine::new(config);
-    for token in tokens {
-        // TODO: use std::error::Error trait in Machine so can use "?" here instead of unwrap()
-        machine.next(&token).unwrap();
-    }
+    let config = config::TabryConf::from_file(config_filename)
+        .with_context(|| "invalid config file")?;
+    let result = machine::Machine::run(config, tokens)
+        .with_context(|| "Tabry machine parse error")?;
 
     if util::is_debug() {
-        println!("{}", serde_json::to_string_pretty(&machine.state)?);
+        println!("{}", serde_json::to_string_pretty(&result.state)?);
     }
 
-    let result = machine.to_result();
     let options_finder = options_finder::OptionsFinder::new(result);
     let opts = options_finder.options(last_token)?;
 
@@ -40,12 +37,12 @@ fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> 
         println!("{}", opt);
     }
 
-    if opts.special_options.len() > 0 {
+    if !opts.special_options.is_empty() {
         if opts.options.is_empty() {
             // if no normal options, bash wrapper seems to require an extra empty line :shrug:
-            println!("");
+            println!();
         }
-        println!("");
+        println!();
         for opt in opts.special_options {
             println!("{}", opt);
         }
@@ -104,7 +101,7 @@ fn compile() {
     // TODO: I think this could be improved. maybe eyre will help
     let tabry_conf = match tabry::lang::compile(&input) {
         Err(e) => {
-            eprintln!("compile error: {}", e.to_string());
+            eprintln!("compile error: {}", e);
             std::process::exit(1);
         },
         Ok(conf) => conf,
@@ -121,7 +118,7 @@ fn commands() {
 
 fn escape(s: &str) -> String {
     // replace single quote with ' '"'"' to escape it in bash:
-    format!("'{}'", s.replace("'", "'\"'\"'"))
+    format!("'{}'", s.replace('\'', "'\"'\"'"))
 }
 
 fn escaped_exe() -> String {
@@ -131,10 +128,10 @@ fn escaped_exe() -> String {
 const TABRY_BASH_SH: &str = include_str!("../shell/tabry_bash.sh");
 fn bash(imports_path: Option<&&str>) {
     if let Some(path) = imports_path {
-        print!("_tabry_rs_imports_path='{}'\n", escape(path));
+        println!("_tabry_rs_imports_path='{}'", escape(path));
     }
 
-    print!("_tabry_rs_executable='{}'\n", escaped_exe());
+    println!("_tabry_rs_executable='{}'", escaped_exe());
     print!("{}", TABRY_BASH_SH);
 }
 
@@ -147,7 +144,7 @@ fn main() {
         [_, "bash"] => bash(None),
         [_, "bash", imports_path] => bash(Some(imports_path)),
         [_, compline, comppoint] => run_as_compline(compline, comppoint).unwrap(),
-        _ => usage(args_strs.get(0).copied())
+        _ => usage(args_strs.first().copied())
     }
 }
 

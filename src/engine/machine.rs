@@ -1,6 +1,3 @@
-// The state machine responsible for parsing command line arguments and identifying
-// subcommands, flags, and positional arguments.
-
 use std::mem::swap;
 
 use crate::core::config::TabryConfError;
@@ -12,6 +9,8 @@ use super::token_matching::TokenMatching;
 
 use super::result::TabryResult;
 
+/// The state machine responsible for parsing command line arguments and identifying
+/// subcommands, flags, and positional arguments.
 pub struct Machine {
     config: TabryConf,
     pub state: MachineState,
@@ -19,7 +18,6 @@ pub struct Machine {
 }
 
 impl Machine {
-    // TODO: want to be able to pass a reference in here. need named lifetime. or can clone it...
     pub fn new(config: TabryConf) -> Machine {
         Machine {
             config,
@@ -28,14 +26,26 @@ impl Machine {
         }
     }
 
+    /// Parse a command line. Specifically, given a TabryConf and token, build and run the state machine and return the TabryResult. Equivalent to `new()` + `next()` for each token + `to_result()`.
+    pub fn run(config: TabryConf, tokens: &[String]) -> Result<TabryResult, TabryConfError> {
+        let mut this = Self::new(config);
+        for token in tokens {
+            this.next(token)?;
+        }
+        Ok(this.to_result())
+    }
+
+    /// Feed the state machine one token.
     pub fn next(&mut self, token: &String) -> Result<(), TabryConfError> {
         match self.state.mode {
             MachineStateMode::Subcommand => self.match_mode_subcommand(token),
-            MachineStateMode::Flagarg { .. } => Ok(self.match_mode_flagarg(token)),
+            MachineStateMode::Flagarg { .. } => {
+                self.match_mode_flagarg(token);
+                Ok(())
+            }
         }
     }
 
-    // TODO: error should be some class probably instead of a string
     fn match_mode_subcommand(&mut self, token: &String) -> Result<(), TabryConfError> {
         if self.match_subcommand(token)?
             || self.match_dashdash(token)
@@ -70,10 +80,9 @@ impl Machine {
         let sub_here = self.config.dig_sub(&self.state.subcommand_stack)?;
 
         if let Some(sub) = self.config.find_in_subs(&sub_here.subs, token, true)? {
-            let name = TabryConf::unwrap_sub_name(&sub)?;
+            let name = TabryConf::unwrap_sub_name(sub)?;
             self.state.subcommand_stack.push(name.to_owned());
             self.log(format!("STEP subcommand, add {}", name));
-            // TODO log
             Ok(true)
         } else {
             Ok(false)
@@ -90,7 +99,7 @@ impl Machine {
         }
     }
 
-    fn match_flag(&mut self, token: &String) -> Result<bool, TabryConfError> {
+    fn match_flag(&mut self, token: &str) -> Result<bool, TabryConfError> {
         if self.state.dashdash {
             return Ok(false)
         }
@@ -109,10 +118,10 @@ impl Machine {
           }
         }
 
-        return Ok(false);
+        Ok(false)
     }
 
-    fn match_help(&mut self, token: &String) -> bool {
+    fn match_help(&mut self, token: &str) -> bool {
         if !self.state.dashdash && (token == "help" || token == "--help" || token == "-?") {
             self.state.help = true;
             true
@@ -124,15 +133,15 @@ impl Machine {
     fn match_arg(&mut self, token: &String) -> Result<(), TabryConfError> {
         self.log(format!("STEP fell back to argument {:?}", token));
         self.state.args.push(token.clone());
-        return Ok(());
+        Ok(())
     }
 
-    fn match_mode_flagarg(&mut self, token: &String) {
+    fn match_mode_flagarg(&mut self, token: &str) {
         // Set mode to subcommand and put string in flag_args
         let mut mode = MachineStateMode::Subcommand;
         swap(&mut mode, &mut self.state.mode);
         if let MachineStateMode::Flagarg { current_flag } = mode {
-            self.state.flag_args.insert(current_flag, token.clone());
+            self.state.flag_args.insert(current_flag, token.to_owned());
         } else {
             unreachable!();
         }
@@ -193,7 +202,8 @@ mod tests {
         let tabry_conf: TabryConf = load_fixture_file("vehicles.json");
         let expectations: serde_json::Value = load_fixture_file("vehicles-expectations.json");
 
-        for (name, test_case) in expectations.as_object().unwrap() {
+        // TODO figure out how to use name
+        for (_name, test_case) in expectations.as_object().unwrap() {
             let mut machine = Machine::new(tabry_conf.clone());
             // test_case is an array with 1) the tokens and 2) the expected state
             let tokens = test_case[0].as_array().unwrap();

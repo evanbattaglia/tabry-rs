@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// Struct holding the Config (the description of a command ands its subcommands/flags/args) with
+/// some utility functions on top of it.
 /// TODO: distinction between code in Machine, this file, and TokenMatching is rather arbritrary,
 /// some very similar things (sub and token flattening) are done different ways.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,7 +62,7 @@ impl TabryConf {
         Ok(result)
     }
 
-    pub fn find_in_subs<'a>(&'a self, subs: &'a Vec<TabrySub>, name: &String, check_aliases: bool)
+    pub fn find_in_subs<'a>(&'a self, subs: &'a [TabrySub], name: &String, check_aliases: bool)
         -> Result<Option<&TabryConcreteSub>, TabryConfError> {
         let concrete_subs : Vec<&TabryConcreteSub> = self.flatten_subs(subs)?;
 
@@ -94,7 +96,7 @@ impl TabryConf {
         }
     }
 
-    pub fn flatten_subs<'a>(&'a self, subs: &'a Vec<TabrySub>) ->
+    pub fn flatten_subs<'a>(&'a self, subs: &'a [TabrySub]) ->
         Result<Vec<&TabryConcreteSub>, TabryConfError> {
 
         let vecofvecs = subs.iter().map(|sub|
@@ -119,13 +121,13 @@ impl TabryConf {
 
     // TODO: Ugh, this is complicated with the Box and dyn. not sure of a better way. Seems
     // one flat_map call can return different types of iterators or something.
-    pub fn expand_flags<'a>(&'a self, flags: &'a Vec<TabryFlag>) -> Box<dyn Iterator<Item = &TabryConcreteFlag> + 'a> {
+    pub fn expand_flags<'a>(&'a self, flags: &'a [TabryFlag]) -> Box<dyn Iterator<Item = &TabryConcreteFlag> + 'a> {
         let iter = flags.iter().flat_map(|flag|
             match flag {
                 TabryFlag::TabryIncludeFlag { include } => {
                     // TODO: bubble up error instead of unwrap (use get_arg_include)
                     let include = self.arg_includes.get(include).unwrap();
-                    self.expand_flags(&include.flags).into_iter()
+                    self.expand_flags(&include.flags)
                 }
                 TabryFlag::TabryConcreteFlag(concrete_flag) =>
                     Box::new(std::iter::once(concrete_flag))
@@ -135,13 +137,13 @@ impl TabryConf {
     }
 
     // TODO: this is an exact copy of the the above expand_flags()
-    pub fn expand_args<'a>(&'a self, args: &'a Vec<TabryArg>) -> Box<dyn Iterator<Item = &TabryConcreteArg> + 'a> {
+    pub fn expand_args<'a>(&'a self, args: &'a [TabryArg]) -> Box<dyn Iterator<Item = &TabryConcreteArg> + 'a> {
         let iter = args.iter().flat_map(|arg|
             match arg {
                 TabryArg::TabryIncludeArg { include } => {
                     // TODO: bubble up error instead of unwrap (use get_arg_include)
                     let include = self.arg_includes.get(include).unwrap();
-                    self.expand_args(&include.args).into_iter()
+                    self.expand_args(&include.args)
                 }
                 TabryArg::TabryConcreteArg(concrete_arg) =>
                     Box::new(std::iter::once(concrete_arg))
@@ -149,6 +151,4 @@ impl TabryConf {
         );
         Box::new(iter)
     }
-
 }
-

@@ -43,7 +43,7 @@ fn parse_identifier<'a>(i: &mut &'a [Token]) -> PResult<&'a str> {
 // foo -> name "foo"
 // foo,bar,waz -> name "foo", aliases "bar" and "waz"
 // "foo,bar" -> name "foo,bar"
-fn parse_identifier_and_aliases<'a>(i: &mut &'a [Token]) -> PResult<NameAndAliases> {
+fn parse_identifier_and_aliases(i: &mut &[Token]) -> PResult<NameAndAliases> {
     let id_and_aliases = any
         .verify(|t|
             matches!(t,
@@ -59,7 +59,7 @@ fn parse_identifier_and_aliases<'a>(i: &mut &'a [Token]) -> PResult<NameAndAlias
       Token::Identifier(s) => (s.to_string(), vec![]),
       Token::String(s) => (s, vec![]),
       Token::IdentifierWithAliases(v) => {
-        let name = v.get(0).unwrap().to_string();
+        let name = v.first().unwrap().to_string();
         let aliases = v[1..].iter().map(|s| s.to_string()).collect::<Vec<_>>();
         (name, aliases)
       },
@@ -69,7 +69,7 @@ fn parse_identifier_and_aliases<'a>(i: &mut &'a [Token]) -> PResult<NameAndAlias
     Ok(NameAndAliases { name, aliases })
 }
 
-fn parse_string_literal<'a>(i: &mut &'a [Token]) -> PResult<String> {
+fn parse_string_literal(i: &mut &[Token]) -> PResult<String> {
     any
         .verify(|t| matches!(t, Token::String(_)))
         .context(StrContext::Expected(StrContextValue::Description("string literal")))
@@ -107,7 +107,7 @@ pub struct CmdStatement {
     pub name: String,
 }
 
-fn parse_cmd_statement<'a>(i: &mut &'a [Token]) -> PResult<CmdStatement> {
+fn parse_cmd_statement(i: &mut &[Token]) -> PResult<CmdStatement> {
     let mut parser = preceded(Token::Identifier("cmd"), parse_identifier);
     let name = parser.parse_next(i)?;
     Ok(CmdStatement { name: name.to_string() })
@@ -118,7 +118,7 @@ pub struct DescStatement {
     pub desc: String,
 }
 
-fn parse_desc_statement<'a>(i: &mut &'a [Token]) -> PResult<DescStatement> {
+fn parse_desc_statement(i: &mut &[Token]) -> PResult<DescStatement> {
     let mut parser = preceded(Token::Identifier("desc"), parse_string_literal);
     let desc = parser.parse_next(i)?;
     Ok(DescStatement { desc })
@@ -129,7 +129,7 @@ pub struct TitleStatement {
     pub title: String,
 }
 
-fn parse_title_statement<'a>(i: &mut &'a [Token]) -> PResult<TitleStatement> {
+fn parse_title_statement(i: &mut &[Token]) -> PResult<TitleStatement> {
     let mut parser = preceded(Token::Identifier("title"), parse_string_literal);
     let title = parser.parse_next(i)?;
     Ok(TitleStatement { title })
@@ -140,7 +140,7 @@ pub struct IncludeStatement {
     pub includes: Vec<String>,
 }
 
-fn parse_include_statement<'a>(i: &mut &'a [Token]) -> PResult<IncludeStatement> {
+fn parse_include_statement(i: &mut &[Token]) -> PResult<IncludeStatement> {
     seq!(IncludeStatement {
         _: Token::Identifier("include"),
         includes: repeat(
@@ -164,7 +164,7 @@ pub enum OptsStatement {
 // it's only 1
 // TODO: should really handle strings "foo!","bar!"???? (requires lexer change)
 // Matches: 'foo', '("foo")', '(a,b "c!" d)'
-fn parse_identifier_and_aliases_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<NameAndAliases>> {
+fn parse_identifier_and_aliases_or_list(i: &mut &[Token]) -> PResult<Vec<NameAndAliases>> {
     alt((
             parse_identifier_and_aliases.map(|v| vec![v]),
             delimited(
@@ -187,7 +187,7 @@ fn parse_identifier_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<&'a str>> {
     )).parse_next(i)
 }
 
-fn parse_opts_id_string_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<String>> {
+fn parse_opts_id_string_or_list(i: &mut &[Token]) -> PResult<Vec<String>> {
     alt((
         // opts const foo
         parse_string_literal.map(|s| vec![s]),
@@ -208,7 +208,7 @@ fn parse_opts_id_string_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<String>>
     .parse_next(i)
 }
 
-fn parse_opts_statement<'a>(i: &mut &'a [Token]) -> PResult<OptsStatement> {
+fn parse_opts_statement(i: &mut &[Token]) -> PResult<OptsStatement> {
     preceded(
         Token::Identifier("opts"),
         alt((
@@ -240,7 +240,7 @@ pub struct DefArgsStatement {
     pub statements: Vec<Statement>,
 }
 
-fn parse_defargs_statement<'a>(i: &mut &'a [Token]) -> PResult<DefArgsStatement> {
+fn parse_defargs_statement(i: &mut &[Token]) -> PResult<DefArgsStatement> {
    seq!(DefArgsStatement {
       _: Token::Identifier("defargs"),
       name: parse_at_identifier
@@ -260,7 +260,7 @@ pub struct DefOptsStatement {
     pub statements: Vec<Statement>,
 }
 
-fn parse_defopts_statement<'a>(i: &mut &'a [Token]) -> PResult<DefOptsStatement> {
+fn parse_defopts_statement(i: &mut &[Token]) -> PResult<DefOptsStatement> {
    seq!(DefOptsStatement {
       _: Token::Identifier("defopts"),
       name: parse_at_identifier
@@ -288,7 +288,7 @@ pub struct SubStatement {
     pub statements: Vec<Statement>,
 }
 
-fn parse_sub_statement<'a>(i: &mut &'a[Token]) -> PResult<SubStatement> {
+fn parse_sub_statement(i: &mut &[Token]) -> PResult<SubStatement> {
     let (names_and_aliases, description, includes, statements_in_block) = seq!(
       _: Token::Identifier("sub"),
       parse_identifier_and_aliases_or_list
@@ -321,7 +321,7 @@ pub struct ArgStatement {
     pub statements: Vec<Statement>,
 }
 
-fn parse_arg_statement<'a>(i: &mut &'a[Token]) -> PResult<ArgStatement> {
+fn parse_arg_statement(i: &mut &[Token]) -> PResult<ArgStatement> {
     let (optional, varargs, names, description, includes, statements_in_block) = seq!(
         opt(Token::Identifier("opt")).map(|t| t.is_some()),
         alt((
@@ -364,7 +364,7 @@ pub struct FlagStatement {
     pub statements: Vec<Statement>,
 }
 
-fn parse_flag_statement<'a>(i: &mut &'a[Token]) -> PResult<FlagStatement> {
+fn parse_flag_statement(i: &mut &[Token]) -> PResult<FlagStatement> {
     let (required, has_arg, names_and_aliases, description, includes, statements_in_block) = seq!(
       opt(Token::Identifier("reqd")).map(|t| t.is_some()),
       alt((
@@ -425,7 +425,7 @@ pub enum Statement {
     DefOpts(DefOptsStatement),
 }
 
-fn parse_statement_inside_sub<'a>(i: &mut &'a [Token]) -> PResult<Statement> {
+fn parse_statement_inside_sub(i: &mut &[Token]) -> PResult<Statement> {
     alt((
         parse_desc_statement.map(Statement::Desc),
         parse_include_statement.map(Statement::Include),
@@ -437,7 +437,7 @@ fn parse_statement_inside_sub<'a>(i: &mut &'a [Token]) -> PResult<Statement> {
         .parse_next(i)
 }
 
-fn parse_statement_inside_arg<'a>(i: &mut &'a [Token]) -> PResult<Statement> {
+fn parse_statement_inside_arg(i: &mut &[Token]) -> PResult<Statement> {
     alt((
         parse_desc_statement.map(Statement::Desc),
         parse_include_statement.map(Statement::Include),
@@ -448,7 +448,7 @@ fn parse_statement_inside_arg<'a>(i: &mut &'a [Token]) -> PResult<Statement> {
     .parse_next(i)
 }
 
-fn parse_statement_inside_flag<'a>(i: &mut &'a [Token]) -> PResult<Statement> {
+fn parse_statement_inside_flag(i: &mut &[Token]) -> PResult<Statement> {
     alt((
         parse_desc_statement.map(Statement::Desc),
         parse_include_statement.map(Statement::Include),
@@ -459,7 +459,7 @@ fn parse_statement_inside_flag<'a>(i: &mut &'a [Token]) -> PResult<Statement> {
 }
 
 
-fn parse_statement_top_level<'a>(i: &mut &'a [Token]) -> PResult<Statement> {
+fn parse_statement_top_level(i: &mut &[Token]) -> PResult<Statement> {
     alt((
         parse_cmd_statement.map(Statement::Cmd),
         parse_desc_statement.map(Statement::Desc),

@@ -34,7 +34,7 @@ pub fn split_with_comppoint(compline: &str, comppoint: usize) -> Result<Tokenize
         [] => unreachable!() // we'll always have at least the sentinel
     };
 
-    let command_basename = command.split("/").last().unwrap_or("").to_owned();
+    let command_basename = command.split('/').last().unwrap_or("").to_owned();
     let last_argument = last_argument.replace(COMPPOINT_SENTINEL, "");
 
     Ok(TokenizedResult { command_basename, arguments, last_argument })
