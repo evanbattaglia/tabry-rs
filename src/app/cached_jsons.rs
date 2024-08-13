@@ -12,8 +12,10 @@ use thiserror::Error;
 pub enum TabryCacheError {
     #[error("error compiling tabry file -- IO error: {0}")]
     CompileFileError(#[from] std::io::Error),
-    #[error("error compiling tabry file -- {0}")]
+    #[error("error compiling tabry file -- invalid tabry file encountered: {0}")]
     CompileError(#[from] crate::lang::LangError),
+    #[error("error compiling tabry file -- JSON serialization error: {0}")]
+    JSONSerializationError(#[from] serde_json::Error),
 }
 
 fn modtime(filename: &str) -> Option<SystemTime> {
@@ -34,11 +36,9 @@ pub fn resolve_and_compile_cache_file(filename: &str) -> Result<String, TabryCac
 
     // if needs to be recompiled:
     if cache_modtime.is_none() || cache_modtime < tabry_modtime {
-        // TODO errors
         let tabry_file = fs::read_to_string(filename)?;
         let compiled = crate::lang::compile(&tabry_file);
-        // TODO unwrap -- make a JSon error variant 
-        let json = serde_json::to_string(&compiled?).unwrap();
+        let json = serde_json::to_string(&compiled?)?;
         fs::write(&cache_filename, json)?;
         // TODO ideally, shouldn't bother reading and decoding the JSON file since we alredy have the
         // compiled form in memory

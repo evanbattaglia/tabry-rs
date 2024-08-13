@@ -1,20 +1,24 @@
-use winnow::combinator::separated;
-use winnow::token::take_while;
-use winnow::token::take_till;
-use winnow::combinator::alt;
-use winnow::combinator::delimited;
-use winnow::combinator::terminated;
-use winnow::combinator::preceded;
-use winnow::PResult;
-use winnow::Parser;
 use winnow::{
-    ascii::multispace1,
-    combinator::repeat,
-    combinator::peek,
+    Parser,
+    PResult,
     error::ErrMode,
-    token::any,
+    ascii::multispace1,
+    combinator::{
+        alt,
+        delimited,
+        dispatch,
+        preceded,
+        separated,
+        terminated,
+        repeat,
+        peek,
+    },
+    token::{
+        take_till,
+        take_while,
+        any,
+    },
 };
-use winnow::combinator::dispatch;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token<'a> {
@@ -37,11 +41,12 @@ impl<'a> Token<'a> {
     }
 }
 
-// WTF
-impl<'a, E: for<'b> winnow::error::ParserError<&'b [Token<'a>]>> winnow::Parser<&[Token<'a>], Token<'a>, E> for Token<'static> {
+// not sure why the type signatures got so crazy...
+/// Match one specific token.
+impl<'a, E: for<'b> winnow::error::ParserError<&'b [Token<'a>]>> winnow::Parser<&[Token<'a>], Token<'a>, E> for Token<'a> {
     #[inline(always)]
     fn parse_next(&mut self, input: &mut &[Token<'a>]) -> Result<Token<'a>, ErrMode<E>> {
-        any.verify(|t| *t == self.clone()).parse_next(input)
+        any.verify(|t| t == self).parse_next(input)
     }
 }
 
@@ -117,4 +122,42 @@ pub fn lex<'a>(i: &mut &'a str) -> PResult<Vec<Token<'a>>> {
     ).parse_next(i)
 }
 
-//--- end lexer---
+#[cfg(test)]
+mod tests {
+    use winnow::Parser;
+    use super::*;
+
+    #[test]
+    fn test_lexing() {
+        use Token::*;
+
+        let s = "
+            sub(foo,f bar) \"de\\\"sc\" @some_include { }
+            arg # comments ignored!!!
+            flag f
+        ";
+
+        let expected = vec![
+            Identifier("sub"),
+            OpenParen,
+            IdentifierWithAliases(vec!["foo", "f"]),
+            Identifier("bar"),
+            CloseParen,
+            String("de\"sc".to_owned()),
+            AtIdentifier("some_include"),
+            OpenBrace,
+            CloseBrace,
+            Identifier("arg"),
+            Identifier("flag"),
+            Identifier("f")
+        ];
+        let res : Result<Vec<Token>, _> = lex.parse(s);
+        assert_eq!(res, Ok(expected));
+    }
+
+    #[test]
+    fn test_lex_failure() {
+        assert!(lex.parse("oops!").is_err());
+    }
+
+}

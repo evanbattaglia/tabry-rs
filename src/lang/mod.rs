@@ -25,6 +25,7 @@ pub fn compile(
     let parse_tree = parser::parse_tabry.parse(&tokens)
         .map_err(|e| LangError::ParseError(format!("{:#?}", e)))?;
     let res = compiler::compile(parse_tree)?;
+
     Ok(res)
 }
 

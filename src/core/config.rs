@@ -48,7 +48,8 @@ impl TabryConf {
     }
 
     // TODO switch to iterator without intermediate Vec
-    /// Get all `TabryConcreteSub`s given a path in the subcommand tree.
+    /// Get all `TabryConcreteSub`s given a path in the subcommand tree, i.e., find the sub found
+    /// by dig_sub along with all its ancestor subs.
     pub fn dig_subs(&self, sub_names_vec: &Vec<String>) -> Result<Vec<&TabryConcreteSub>, TabryConfError> {
         let mut result = vec![&self.main];
 
