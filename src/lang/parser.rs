@@ -14,20 +14,13 @@ use winnow::{
 
 use super::lexer::Token;
 // TODO errors are still hard to figure out, doesn't seem like the context() calls are doing much
-// TODO () in args:
-//   arg (foo bar ok)
 
-// Takes lex tokens and produces a TabryFile, a parse tree.
-// This is a representation of the tabry file that is close to the original source.
+// In this parse tree, anything that comes from Lexer as &'a str, we could avoid copying into a
+// String. But I don't think it's worth the hassle of more complex memory management.
 
-// TODO: in this parse tree, anything that comes from Lexer as &'a str, make it a &'a str ehre too
-// (instead of a copied String)
-// although I'm not sure it's worth the headache...
-//--- end lexer---
+// =========== RAW TOKENS / BUILDING BLOCKS ==========
 
-// Raw tokens / building blocks
-
-// I'm not sure if there's a better way to do all this...
+// TODO: I'm not sure if there's a better way to do all this...
 fn parse_identifier<'a>(i: &mut &'a [Token]) -> PResult<&'a str> {
     any
         .verify(|t| matches!(t, Token::Identifier(_)))
@@ -476,8 +469,67 @@ fn parse_statement_top_level(i: &mut &[Token]) -> PResult<Statement> {
 
 // ==================================
 
+/// Takes Tokens from lexer and produces a TabryFile, a parse tree. This is a representation of the
+/// tabry file that is close to the original source.
 pub fn parse_tabry(i: &mut &[Token]) -> PResult<TabryFile> {
     let statements = repeat(0.., parse_statement_top_level).parse_next(i)?;
     Ok(TabryFile { statements })
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_TODO() {
+        let tokens = vec![Token::Identifier("arg")];
+        let parse_tree = parse_tabry.parse(&tokens).unwrap();
+        let debug_str = format!("{:?}", parse_tree);
+        assert_eq!(debug_str, "")
+    }
+}
+
+/*
+
+
+TabryFile {
+  statements: [
+    Arg(ArgStatement {
+      names: [],
+      optional: false,
+      varargs: false,
+      description: None,
+      includes: [],
+      statements: []
+    })
+  ]
+}
+ 
+(source_file
+  (arg_statement
+    (arg_type)
+    (block
+      (opts_const_statement (string))
+      (opts_const_statement (string)))))
+---
+
+==============
+Arg with two opts
+==============
+
+arg {
+  opts const "hello \"world\""
+  opts const abc
+}
+
+---
+
+(source_file
+  (arg_statement
+    (arg_type)
+    (block
+      (opts_const_statement (string))
+      (opts_const_statement (string)))))
+
+
+*/
