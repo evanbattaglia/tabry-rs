@@ -1,0 +1,48 @@
+# Tab completion for Apollo GraphQL rover CLI
+# INCOMPLETE
+
+cmd rover
+
+flagarg profile @profile
+flag (
+  insecure-accept-invalid-certs
+  insecure-accept-invalid-hostnames
+  version
+)
+flagarg client-timeout
+flagarg log,l { opts const (error warn info debug trace) }
+flagarg output { opts const (json plain) }
+
+sub config {
+  sub (auth clear delete help list whoami)
+}
+
+sub docs {
+  sub (help list open)
+}
+
+sub explain
+
+sub fed2 {
+  sub (help supergraph)
+}
+
+sub graph {
+  sub (delete fetch help instrospect publish)
+}
+
+sub subgraph {
+  sub (check delete fetch help introspect list)
+}
+
+sub supergraph {
+  sub (compose fetch help)
+}
+
+sub update {
+  sub check
+}
+
+defopts @profile {
+  opts shell "rover config list|grep . |grep -v Profiles:"
+}

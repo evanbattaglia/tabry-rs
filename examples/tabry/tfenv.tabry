@@ -1,0 +1,16 @@
+# tfenv example -- may be incomplete
+
+cmd tfenv
+
+sub install
+sub uninstall @available-versions
+sub use @available-versions
+sub list
+sub list-remote
+
+defargs @available-versions {
+  arg version {
+    opts shell "tfenv list| sed -e s/^..// -e 's/ .*//'"
+  }
+}
+

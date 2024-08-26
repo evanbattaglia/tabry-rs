@@ -1,0 +1,12 @@
+cmd rapture
+
+sub (init whoami account refresh resume check config reset version)
+
+sub role {
+  sub (ls set)
+  sub rm { arg @role }
+}
+
+sub (assume wrap) { arg @role }
+defopts @role { opts shell "rapture role ls|awk '{print $2}'" }
+

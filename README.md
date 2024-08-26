@@ -37,6 +37,8 @@ source ~/.bash_profile # or open a new terminal
 zellij #<tab> should now show completions
 ```
 
+You can also try copying or symlinking some of the files in [examples/tabry/](./examples/tabry/] to `~/.local/share/tabry`.
+
 # Tabry language
 
 Please see the [documentation in the Ruby project](https://github.com/evanbattaglia/tabry/blob/master/LANGUAGE_REFERENCE.md).

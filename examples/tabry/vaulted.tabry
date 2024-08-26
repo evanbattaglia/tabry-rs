@@ -1,0 +1,40 @@
+cmd vaulted
+
+sub add,create,new { arg }
+sub cp,copy {
+  arg @opts-vault
+  arg
+}
+sub dump { arg @opts-vault }
+sub edit { arg @opts-vault }
+
+sub env @flagarg-region {
+  flagarg assume
+  flagarg format { opts const (shell fish sh json) }
+  flag (no-session refresh)
+  arg @opts-vault
+}
+
+sub exec @flags-exec {
+  arg @opts-vault
+  arg
+}
+sub ls,list
+sub passwd { arg @opts-vault }
+sub rm,delete,remove { arg @opts-vault }
+sub shell @flags-exec @flagarg-region { arg @opts-vault }
+sub upgrade
+
+defargs @flags-exec {
+  flagarg assume
+  flag (no-session refresh ssh-generate-key ssh-proxy-agent ssh-signing-url ssh-signing-users)
+}
+
+defargs @flagarg-region {
+  flagarg region { opts const (us-east-1 us-west-2 ap-southeast-2 ap-southeast-1 ca-central-1 eu-central-1 eu-west-1) }
+}
+
+defopts @opts-vault {
+  opts shell "vaulted ls | sed 's/ .*//'"
+}
+
