@@ -20,7 +20,7 @@
             "options": [
               {
                 "type": "include",
-                "value": "vehicle-type-arg"
+                "value": "vehicle-type"
               }
             ],
             "varargs": true

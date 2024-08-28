@@ -4,7 +4,6 @@ use crate::core::{
 };
 use super::machine_state::MachineState;
 
-
 /// Encapsulates a TabryConfig and a TabryMachineState state, and provides
 /// functionality relating to this state.
 pub struct TabryResult {
@@ -13,6 +12,7 @@ pub struct TabryResult {
 
     // TODO: tried to make it a reference but got into a named lifetime mess... not sure why
     // when it only references things in TabryConf
+    // TODO look into using pin, or possibly just Rc/Arc
     pub sub_stack: Vec<TabryConcreteSub>,
 }
 

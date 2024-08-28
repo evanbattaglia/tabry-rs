@@ -184,3 +184,181 @@ impl OptionsFinder {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use crate::core::config::TabryConf;
+    use crate::engine::machine_state::{
+        MachineState,
+        MachineStateMode::*
+    };
+    use crate::test_helpers::load_fixture_file;
+    // TODO fill in from ~/dev/tabry/spec/tabry/options_finder_spec.rb
+
+    fn options_with_machine_state(machine_state: MachineState, token: &str) -> OptionsResults {
+        let tabry_conf: TabryConf = load_fixture_file("vehicles.json");
+        let tabry_result = TabryResult::new(tabry_conf, machine_state);
+        let options_finder = OptionsFinder::new(tabry_result);
+        options_finder.options(token).unwrap()
+    }
+
+    macro_rules! token_or_default(
+        ($token:expr) => { $token };
+        () => { "" };
+    );
+
+    macro_rules! test_options_finder(
+        (
+            $name:ident,
+            (
+                $($expected:expr),*
+                $(; $($expected_special_options:expr),*)?
+            ),
+            {$($machine_state_key:ident : $machine_state_val:expr),*}
+            $(, $token:expr)?
+         ) => {
+            #[test]
+            fn $name() {
+                let token = token_or_default!($($token)?);
+                let machine_state = MachineState {
+                    $($machine_state_key : $machine_state_val ,)*
+                    ..Default::default()
+                };
+                let options_results = options_with_machine_state(machine_state, token);
+                let actual_strs : HashSet<&str> = 
+                    options_results.options.iter().map(|s| s.as_str()).collect();
+                let actual_specials_strs : HashSet<&str> = 
+                    options_results.special_options.iter().map(|s| s.as_str()).collect();
+
+                let expected = [$($expected),*];
+                let expected_special_options = [$($($expected_special_options),*)?];
+
+                assert_eq!(actual_strs, HashSet::from(expected));
+                assert_eq!(actual_specials_strs, HashSet::from(expected_special_options));
+            }
+        };
+    );
+
+    macro_rules! vec_owned {
+        ($($str:expr),*) => {
+            (vec![$($str.to_owned()),*])
+        };
+    }
+
+    macro_rules! hashmap_owned {
+        ($($k:expr => $v:expr),* $(,)?) => {{
+            HashMap::from([$(($k.to_owned(), $v.to_owned()),)*])
+        }};
+    }
+
+    test_options_finder!(
+        test_possible_subcommands_of_the_main_command,
+        ("build", "list-vehicles", "move", "sub-with-sub-or-arg", "sub-with-sub-or-opt-arg", "sub-with-mandatory-flag"),
+        {}
+    );
+
+    test_options_finder!(
+        test_possible_subcommands_of_a_subcommand,
+        ("go", "stop", "crash", "freeway-crash"),
+        {subcommand_stack: vec_owned!("move")}
+    );
+
+    test_options_finder!(
+        test_lists_possible_arguments_const,
+        ("car","bike"),
+        {subcommand_stack: vec_owned!("move", "go")}
+    );
+
+    test_options_finder!(
+        test_lists_options_for_varargs,
+        ("car", "bike"),
+        {subcommand_stack: vec_owned!("build")}
+    );
+
+    test_options_finder!(
+        test_lists_both_possible_args_and_subcommand_stack_if_a_subcommand_can_take_either,
+        ("x","y","z","subsub"),
+        {subcommand_stack: vec_owned!("sub-with-sub-or-arg")}
+    );
+
+    test_options_finder!(
+        test_lists_possible_flags_if_the_last_token_starts_with_a_dash,
+        ("--verbose", "--speed", "--output-to-file", "--output-to-directory", "--dry-run"),
+        {subcommand_stack: vec_owned!("move", "crash")},
+        "-"
+    );
+
+    test_options_finder!(
+        test_doesn_t_list_a_flag_if_it_has_already_been_given,
+        ("--verbose","--speed","--output-to-file","--output-to-directory"),
+        {
+          flags: hashmap_owned!("dry-run" => true),
+          subcommand_stack: vec_owned!("move", "crash")
+        },
+        "-"
+    );
+
+    test_options_finder!(
+        test_doesnt_suggests_flags_if_double_dash_has_been_used,
+        (),
+        {
+            dashdash: true,
+            subcommand_stack: vec_owned!("move", "crash")
+        },
+        "-"
+    );
+
+    // TODO
+    // test_options_finder!(
+    //     test_lists_only_a_mandatory_flag_if_it_hasnt_been_given_yet,
+    //     ("--mandatory"),
+    //     {subcommand_stack: vec_owned!("sub-with-mandatory-flag")}
+    // );
+
+    test_options_finder!(
+        test_lists_other_args_after_a_mandatory_flag_has_been_given,
+        ("a","b","c"),
+        {
+          subcommand_stack: vec_owned!("sub-with-mandatory-flag"),
+          flag_args: hashmap_owned!("mandatory" => "foo")
+        }
+    );
+
+    test_options_finder!(
+        test_lists_possibilities_for_a_flag_arguments_shell,
+        ("fast","slow"),
+        {
+            subcommand_stack: vec_owned!("move", "crash"),
+            mode: Flagarg { current_flag: "speed".to_owned() }
+        }
+    );
+
+    test_options_finder!(
+        test_lists_possibilities_for_a_flag_arguments_file_const,
+        ("-"; "file"), // special "file" option
+        {
+          subcommand_stack: vec_owned!("move", "crash"),
+          mode: Flagarg { current_flag: "output-to-file".to_owned() }
+        }
+    );
+
+    test_options_finder!(
+        test_lists_possibilities_for_a_flag_arguments_dir,
+        (; "dir"), // special "dir" option
+        {
+          subcommand_stack: vec_owned!("move", "crash"),
+          mode: Flagarg { current_flag: "output-to-directory".to_owned() }
+        }
+    );
+
+    test_options_finder!(
+        test_lists_nothing_if_no_options_are_defined,
+        (),
+        {
+            subcommand_stack: vec_owned!("sub-with-sub-or-arg"),
+            mode: Flagarg { current_flag: "mandatory".to_owned() }
+        }
+    );
+}

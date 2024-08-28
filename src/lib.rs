@@ -14,3 +14,6 @@ pub mod app;
 
 // The tabry language parser (compiler)
 pub mod lang;
+
+#[cfg(test)]
+mod test_helpers;

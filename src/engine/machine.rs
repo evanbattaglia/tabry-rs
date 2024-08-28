@@ -162,14 +162,9 @@ impl Machine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
     use assert_json_diff::assert_json_eq;
-    use serde::Deserialize;
 
-    fn load_fixture_file<T: for<'a>Deserialize<'a>>(filename: &str) -> T {
-        let file_str = fs::read_to_string(format!("fixtures/{filename}")).unwrap();
-        serde_json::from_str::<T>(&file_str).unwrap()
-    }
+    use crate::test_helpers::load_fixture_file;
 
     fn add_expectation_defaults(mut expectation: serde_json::Value) -> serde_json::Value {
         // base is the default object, except no flag_args (expectation file merges "flags" and
@@ -202,7 +197,7 @@ mod tests {
         let tabry_conf: TabryConf = load_fixture_file("vehicles.json");
         let expectations: serde_json::Value = load_fixture_file("vehicles-expectations.json");
 
-        // TODO figure out how to use name
+        // TODO figure out how to use name. use a macro here?
         for (_name, test_case) in expectations.as_object().unwrap() {
             let mut machine = Machine::new(tabry_conf.clone());
             // test_case is an array with 1) the tokens and 2) the expected state
