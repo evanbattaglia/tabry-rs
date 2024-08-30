@@ -1,15 +1,8 @@
-use super::{
-    machine_state::MachineStateMode,
-    result::TabryResult,
-};
-use crate::core::types::{
-    TabryOpt,
-    TabryConcreteArg,
-    TabryConcreteFlag,
-};
+use super::{machine_state::MachineStateMode, result::TabryResult};
 use crate::core::config::TabryConfError;
-use std::process::Command;
+use crate::core::types::{TabryConcreteArg, TabryConcreteFlag, TabryOpt};
 use std::collections::HashSet;
+use std::process::Command;
 
 use serde_json::json;
 
@@ -43,7 +36,9 @@ impl OptionsFinder {
 
     pub fn options(&self, token: &str) -> Result<OptionsResults, TabryConfError> {
         let mut res = OptionsResults {
-            prefix: token.to_owned(), options: HashSet::new(), special_options: HashSet::new()
+            prefix: token.to_owned(),
+            options: HashSet::new(),
+            special_options: HashSet::new(),
         };
 
         match self.result.state.mode {
@@ -66,7 +61,7 @@ impl OptionsFinder {
     fn add_options_subcommand_subs(&self, res: &mut OptionsResults) {
         // once arg has been given, can no longer use a subcommand
         if !self.result.state.args.is_empty() {
-            return
+            return;
         }
 
         let opaque_subs = &self.result.current_sub().subs;
@@ -78,17 +73,16 @@ impl OptionsFinder {
     }
 
     fn flag_is_used(&self, flag: &TabryConcreteFlag) -> bool {
-        self.result.state.flags.contains_key(&flag.name) ||
-            self.result.state.flag_args.contains_key(&flag.name)
+        self.result.state.flags.contains_key(&flag.name)
+            || self.result.state.flag_args.contains_key(&flag.name)
     }
 
     fn add_option_for_flag(res: &mut OptionsResults, flag: &TabryConcreteFlag) {
-        let flag_str =
-            if flag.name.len() == 1 {
-                format!("-{}", flag.name)
-            } else {
-                format!("--{}", flag.name)
-            };
+        let flag_str = if flag.name.len() == 1 {
+            format!("-{}", flag.name)
+        } else {
+            format!("--{}", flag.name)
+        };
         res.insert(&flag_str);
     }
 
@@ -97,7 +91,10 @@ impl OptionsFinder {
             return Ok(());
         }
 
-        let mut current_sub_flags = self.result.config.expand_flags(&self.result.current_sub().flags);
+        let mut current_sub_flags = self
+            .result
+            .config
+            .expand_flags(&self.result.current_sub().flags);
         let first_reqd_flag = current_sub_flags.find(|f| f.required && !self.flag_is_used(f));
         if let Some(first_reqd_flag) = first_reqd_flag {
             Self::add_option_for_flag(res, first_reqd_flag);
@@ -120,13 +117,19 @@ impl OptionsFinder {
         Ok(())
     }
 
-    fn add_options(&self, res: &mut OptionsResults, options: &Vec<TabryOpt>) -> Result<(), TabryConfError> {
+    fn add_options(
+        &self,
+        res: &mut OptionsResults,
+        options: &Vec<TabryOpt>,
+    ) -> Result<(), TabryConfError> {
         for opt in options {
             match &opt {
                 TabryOpt::File => res.insert_special("file"),
                 TabryOpt::Dir => res.insert_special("dir"),
                 TabryOpt::Const { value } => res.insert(value),
-                TabryOpt::Delegate { value } => res.insert_special(format!("delegate {}", value).as_str()),
+                TabryOpt::Delegate { value } => {
+                    res.insert_special(format!("delegate {}", value).as_str())
+                }
                 TabryOpt::Shell { value } => {
                     let auto_complete_state = json!({
                         "cmd": self.result.config.cmd,
@@ -138,7 +141,9 @@ impl OptionsFinder {
                         // "current_flag": self.result.state.current_flag,
                         // ^ this doesn't seem to exist either for the rust version?
                     });
-                    let output = Command::new("sh").arg("-c").arg(value)
+                    let output = Command::new("sh")
+                        .arg("-c")
+                        .arg(value)
                         .env("TABRY_AUTOCOMPLETE_STATE", auto_complete_state.to_string())
                         .output();
                     // TODO bubble up errors instead on unwrap()
@@ -149,7 +154,7 @@ impl OptionsFinder {
                             res.insert(line);
                         }
                     }
-                },
+                }
                 TabryOpt::Include { value } => {
                     // TODO: what happens if there is an include loop?
                     self.add_options(res, self.result.config.get_option_include(value)?)?;
@@ -160,11 +165,20 @@ impl OptionsFinder {
     }
 
     fn add_options_subcommand_args(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
-        let sub_args = self.result.config.expand_args(&self.result.current_sub().args).collect::<Vec<_>>();
+        let sub_args = self
+            .result
+            .config
+            .expand_args(&self.result.current_sub().args)
+            .collect::<Vec<_>>();
 
         if let Some(arg) = sub_args.get(self.result.state.args.len()) {
             self.add_options(res, &arg.options)?;
-        } else if let Some(TabryConcreteArg{varargs: true, options, ..}) = sub_args.last() {
+        } else if let Some(TabryConcreteArg {
+            varargs: true,
+            options,
+            ..
+        }) = sub_args.last()
+        {
             self.add_options(res, options)?;
         }
 
@@ -172,7 +186,9 @@ impl OptionsFinder {
     }
 
     fn add_options_flagarg(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
-        let MachineStateMode::Flagarg { current_flag } = &self.result.state.mode else { unreachable!() };
+        let MachineStateMode::Flagarg { current_flag } = &self.result.state.mode else {
+            unreachable!()
+        };
         for sub in &self.result.sub_stack {
             for flag in self.result.config.expand_flags(&sub.flags) {
                 if &flag.name == current_flag {
@@ -188,13 +204,10 @@ impl OptionsFinder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
     use crate::core::config::TabryConf;
-    use crate::engine::machine_state::{
-        MachineState,
-        MachineStateMode::*
-    };
+    use crate::engine::machine_state::{MachineState, MachineStateMode::*};
     use crate::test_helpers::load_fixture_file;
+    use std::collections::HashMap;
     // TODO fill in from ~/dev/tabry/spec/tabry/options_finder_spec.rb
 
     fn options_with_machine_state(machine_state: MachineState, token: &str) -> OptionsResults {
@@ -227,9 +240,9 @@ mod tests {
                     ..Default::default()
                 };
                 let options_results = options_with_machine_state(machine_state, token);
-                let actual_strs : HashSet<&str> = 
+                let actual_strs : HashSet<&str> =
                     options_results.options.iter().map(|s| s.as_str()).collect();
-                let actual_specials_strs : HashSet<&str> = 
+                let actual_specials_strs : HashSet<&str> =
                     options_results.special_options.iter().map(|s| s.as_str()).collect();
 
                 let expected = [$($expected),*];
@@ -255,7 +268,14 @@ mod tests {
 
     test_options_finder!(
         test_possible_subcommands_of_the_main_command,
-        ("build", "list-vehicles", "move", "sub-with-sub-or-arg", "sub-with-sub-or-opt-arg", "sub-with-mandatory-flag"),
+        (
+            "build",
+            "list-vehicles",
+            "move",
+            "sub-with-sub-or-arg",
+            "sub-with-sub-or-opt-arg",
+            "sub-with-mandatory-flag"
+        ),
         {}
     );
 

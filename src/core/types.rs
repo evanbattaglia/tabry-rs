@@ -20,10 +20,8 @@ pub enum TabryOpt {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TabryArg {
-    TabryIncludeArg {
-        include: String,
-    },
-    TabryConcreteArg(TabryConcreteArg)
+    TabryIncludeArg { include: String },
+    TabryConcreteArg(TabryConcreteArg),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,10 +54,8 @@ pub struct TabryConcreteFlag {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TabryFlag {
-    TabryIncludeFlag {
-        include: String,
-    },
-    TabryConcreteFlag(TabryConcreteFlag)
+    TabryIncludeFlag { include: String },
+    TabryConcreteFlag(TabryConcreteFlag),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

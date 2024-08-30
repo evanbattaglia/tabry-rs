@@ -3,7 +3,6 @@
 /// the tabry file. If there is, uses that as the tabry config; if there isn't, kicks off the
 /// compiler (in the future I'd like to have the compiler in rust) and then uses it for completion.
 /// (this could be done in shell but it would add a bit of time to run every tab completion)
-
 use std::fs;
 use std::time::SystemTime;
 use thiserror::Error;

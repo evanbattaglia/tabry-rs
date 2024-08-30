@@ -8,9 +8,12 @@ const EXTENSIONS: [&str; 2] = [".tabry", ".json"];
 pub struct ConfigFinderError(String, String);
 
 pub fn import_path() -> String {
-    match std::env::var("TABRY_IMPORT_PATH").ok().filter(|t| !t.is_empty()) {
+    match std::env::var("TABRY_IMPORT_PATH")
+        .ok()
+        .filter(|t| !t.is_empty())
+    {
         Some(s) => s,
-        None => "./".to_owned()
+        None => "./".to_owned(),
     }
 }
 

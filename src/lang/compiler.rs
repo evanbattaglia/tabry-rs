@@ -34,14 +34,17 @@ fn add_subs_from_sub_statement(subs: &mut Vec<types::TabrySub>, stmt: parser::Su
         // the whole statement. maybe I should pass a reference that can be copied, but would have
         // to change references all the way down
         sub.description.clone_from(&stmt.description);
-        add_sub_arg_flag_includes(&mut sub.subs, &mut sub.args, &mut sub.flags, stmt.includes.clone());
+        add_sub_arg_flag_includes(
+            &mut sub.subs,
+            &mut sub.args,
+            &mut sub.flags,
+            stmt.includes.clone(),
+        );
         for stmt_in_block in &stmt.statements {
             process_statement_inside_sub(&mut sub, stmt_in_block.clone());
         }
         subs.push(types::TabrySub::TabryConcreteSub(sub));
     }
-
-
 }
 
 fn add_opts(opts: &mut Vec<types::TabryOpt>, stmt: parser::OptsStatement) {
@@ -52,11 +55,9 @@ fn add_opts(opts: &mut Vec<types::TabryOpt>, stmt: parser::OptsStatement) {
             for value in values {
                 opts.push(types::TabryOpt::Const { value })
             }
-        },
-        parser::OptsStatement::Shell { value } =>
-            opts.push(types::TabryOpt::Shell { value }),
-        parser::OptsStatement::Delegate { value } =>
-            opts.push(types::TabryOpt::Delegate { value }),
+        }
+        parser::OptsStatement::Shell { value } => opts.push(types::TabryOpt::Shell { value }),
+        parser::OptsStatement::Delegate { value } => opts.push(types::TabryOpt::Delegate { value }),
     }
 }
 
@@ -76,7 +77,7 @@ fn add_flags_from_flag_statement(flags: &mut Vec<types::TabryFlag>, stmt: parser
             arg: stmt.has_arg,
             required: stmt.required,
         };
-            // TODO: again, potential optimizations in this function -- don't clone if only one
+        // TODO: again, potential optimizations in this function -- don't clone if only one
         add_include_opts(&mut flag.options, stmt.includes.clone());
         for stmt_in_block in stmt.statements.clone() {
             match stmt_in_block {
@@ -86,9 +87,11 @@ fn add_flags_from_flag_statement(flags: &mut Vec<types::TabryFlag>, stmt: parser
                         panic!("multiple desc statements found");
                     }
                     flag.description = Some(desc_stmt.desc);
-                },
+                }
                 parser::Statement::Opts(opts_stmt) => add_opts(&mut flag.options, opts_stmt),
-                parser::Statement::Include(include_stmt) => add_include_opts(&mut flag.options, include_stmt.includes),
+                parser::Statement::Include(include_stmt) => {
+                    add_include_opts(&mut flag.options, include_stmt.includes)
+                }
                 _ => unreachable!("unhandled statement in compile_flag: {:?}", stmt_in_block),
             }
         }
@@ -97,30 +100,32 @@ fn add_flags_from_flag_statement(flags: &mut Vec<types::TabryFlag>, stmt: parser
 }
 
 fn make_arg(stmt: &parser::ArgStatement, name: Option<String>) -> types::TabryArg {
-        let mut arg = types::TabryConcreteArg {
-            name,
-            description: stmt.description.clone(),
-            varargs: stmt.varargs,
-            optional: stmt.optional,
-            options: vec![],
-        };
-        add_include_opts(&mut arg.options, stmt.includes.clone());
-        for stmt_in_block in stmt.statements.clone() {
-            match stmt_in_block {
-                parser::Statement::Opts(opts_stmt) => add_opts(&mut arg.options, opts_stmt),
-                parser::Statement::Include(include_stmt) => add_include_opts(&mut arg.options, include_stmt.includes),
-                parser::Statement::Title(title_stmt) => {
-                    // TODO (not supported in types module yet)
-                    // for now this avoids the 'unused' warning for Title.title
-                    if is_debug() {
-                        eprintln!("ignoring title: {:?}", title_stmt.title);
-                    }
-                },
-                parser::Statement::Desc(_desc_stmt) => {}, // TODO (not supported in types module yet)
-                _ => unreachable!("unhandled statement in compile_arg: {:?}", stmt_in_block),
+    let mut arg = types::TabryConcreteArg {
+        name,
+        description: stmt.description.clone(),
+        varargs: stmt.varargs,
+        optional: stmt.optional,
+        options: vec![],
+    };
+    add_include_opts(&mut arg.options, stmt.includes.clone());
+    for stmt_in_block in stmt.statements.clone() {
+        match stmt_in_block {
+            parser::Statement::Opts(opts_stmt) => add_opts(&mut arg.options, opts_stmt),
+            parser::Statement::Include(include_stmt) => {
+                add_include_opts(&mut arg.options, include_stmt.includes)
             }
+            parser::Statement::Title(title_stmt) => {
+                // TODO (not supported in types module yet)
+                // for now this avoids the 'unused' warning for Title.title
+                if is_debug() {
+                    eprintln!("ignoring title: {:?}", title_stmt.title);
+                }
+            }
+            parser::Statement::Desc(_desc_stmt) => {} // TODO (not supported in types module yet)
+            _ => unreachable!("unhandled statement in compile_arg: {:?}", stmt_in_block),
         }
-        types::TabryArg::TabryConcreteArg(arg)
+    }
+    types::TabryArg::TabryConcreteArg(arg)
 }
 
 fn add_args_from_arg_statement(args: &mut Vec<types::TabryArg>, stmt: parser::ArgStatement) {
@@ -139,11 +144,15 @@ fn add_sub_arg_flag_includes(
     subs: &mut Vec<types::TabrySub>,
     args: &mut Vec<types::TabryArg>,
     flags: &mut Vec<types::TabryFlag>,
-    includes: Vec<String>
+    includes: Vec<String>,
 ) {
     for include in includes {
-        args.push(types::TabryArg::TabryIncludeArg { include: include.clone() });
-        subs.push(types::TabrySub::TabryIncludeSub { include: include.clone() });
+        args.push(types::TabryArg::TabryIncludeArg {
+            include: include.clone(),
+        });
+        subs.push(types::TabrySub::TabryIncludeSub {
+            include: include.clone(),
+        });
         flags.push(types::TabryFlag::TabryIncludeFlag { include });
     }
 }
@@ -152,15 +161,19 @@ fn process_statement_inside_sub_or_defargs(
     subs: &mut Vec<types::TabrySub>,
     args: &mut Vec<types::TabryArg>,
     flags: &mut Vec<types::TabryFlag>,
-    statement: parser::Statement
+    statement: parser::Statement,
 ) {
     match statement {
         parser::Statement::Sub(child_sub_stmt) => add_subs_from_sub_statement(subs, child_sub_stmt),
         parser::Statement::Arg(arg_stmt) => add_args_from_arg_statement(args, arg_stmt),
         parser::Statement::Flag(flag_stmt) => add_flags_from_flag_statement(flags, flag_stmt),
-        parser::Statement::Include(include_stmt) =>
-            add_sub_arg_flag_includes(subs, args, flags, include_stmt.includes),
-        _ => unreachable!("unhandled statement in process_statement_inside_sub_or_defargs: {:?}", statement),
+        parser::Statement::Include(include_stmt) => {
+            add_sub_arg_flag_includes(subs, args, flags, include_stmt.includes)
+        }
+        _ => unreachable!(
+            "unhandled statement in process_statement_inside_sub_or_defargs: {:?}",
+            statement
+        ),
     }
 }
 
@@ -168,8 +181,10 @@ fn process_statement_inside_sub(sub: &mut types::TabryConcreteSub, statement: pa
     match statement {
         parser::Statement::Desc(desc) => sub.description = Some(desc.desc),
         _ => process_statement_inside_sub_or_defargs(
-            &mut sub.subs, &mut sub.args, &mut sub.flags,
-            statement
+            &mut sub.subs,
+            &mut sub.args,
+            &mut sub.flags,
+            statement,
         ),
     }
 }
@@ -182,19 +197,23 @@ fn compile_defargs(stmt: parser::DefArgsStatement) -> (String, types::TabryArgIn
     };
     for statement in stmt.statements {
         process_statement_inside_sub_or_defargs(
-            &mut arg_include.subs, &mut arg_include.args, &mut arg_include.flags,
-            statement
+            &mut arg_include.subs,
+            &mut arg_include.args,
+            &mut arg_include.flags,
+            statement,
         );
     }
     (stmt.name, arg_include)
 }
 
 fn compile_defopts(stmt: parser::DefOptsStatement) -> (String, Vec<types::TabryOpt>) {
-    let mut opts : Vec<types::TabryOpt> = vec![];
+    let mut opts: Vec<types::TabryOpt> = vec![];
     for stmt_in_block in stmt.statements {
         match stmt_in_block {
             parser::Statement::Opts(opts_stmt) => add_opts(&mut opts, opts_stmt),
-            parser::Statement::Include(include_stmt) => add_include_opts(&mut opts, include_stmt.includes),
+            parser::Statement::Include(include_stmt) => {
+                add_include_opts(&mut opts, include_stmt.includes)
+            }
             _ => unreachable!("unhandled statement in compile_flag: {:?}", stmt_in_block),
         }
     }
@@ -221,18 +240,20 @@ pub fn compile(tabry_file: parser::TabryFile) -> Result<config::TabryConf, Compi
             parser::Statement::DefArgs(def_args) => {
                 let (name, arg_include) = compile_defargs(def_args);
                 conf.arg_includes.insert(name, arg_include);
-            },
+            }
             parser::Statement::DefOpts(def_opts) => {
                 let (name, opt_include) = compile_defopts(def_opts);
                 conf.option_includes.insert(name, opt_include);
-            },
+            }
             parser::Statement::Cmd(cmd) => {
                 if conf.cmd.is_some() {
-                    return Err(CompileError { msg: "multiple cmd statements found".to_string() });
+                    return Err(CompileError {
+                        msg: "multiple cmd statements found".to_string(),
+                    });
                     // TODO errors for real
                 }
                 conf.cmd = Some(cmd.name);
-            },
+            }
             _ => process_statement_inside_sub(&mut conf.main, statement),
         }
     }

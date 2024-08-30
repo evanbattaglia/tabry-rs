@@ -1,15 +1,11 @@
 use winnow::combinator::alt;
 use winnow::combinator::delimited;
-use winnow::combinator::preceded;
 use winnow::combinator::opt;
+use winnow::combinator::preceded;
 use winnow::PResult;
 use winnow::Parser;
 use winnow::{
-    combinator::repeat,
-    combinator::seq,
-    error::StrContext,
-    error::StrContextValue,
-    token::any,
+    combinator::repeat, combinator::seq, error::StrContext, error::StrContextValue, token::any,
 };
 
 use super::lexer::Token;
@@ -23,9 +19,10 @@ use super::lexer::Token;
 
 // TODO: I'm not sure if there's a better way to do all this...
 fn parse_identifier<'a>(i: &mut &'a [Token]) -> PResult<&'a str> {
-    any
-        .verify(|t| matches!(t, Token::Identifier(_)))
-        .context(StrContext::Expected(StrContextValue::Description("identifier")))
+    any.verify(|t| matches!(t, Token::Identifier(_)))
+        .context(StrContext::Expected(StrContextValue::Description(
+            "identifier",
+        )))
         .parse_next(i)
         .map(|t| match t {
             Token::Identifier(s) => s,
@@ -39,34 +36,36 @@ fn parse_identifier<'a>(i: &mut &'a [Token]) -> PResult<&'a str> {
 // "foo,bar" -> name "foo,bar"
 fn parse_identifier_and_aliases(i: &mut &[Token]) -> PResult<NameAndAliases> {
     let id_and_aliases = any
-        .verify(|t|
-            matches!(t,
-                Token::Identifier(_)
-                | Token::IdentifierWithAliases(_)
-                | Token::String(_)
+        .verify(|t| {
+            matches!(
+                t,
+                Token::Identifier(_) | Token::IdentifierWithAliases(_) | Token::String(_)
             )
-        )
-        .context(StrContext::Expected(StrContextValue::Description("identifier/string or identifier with aliases")))
+        })
+        .context(StrContext::Expected(StrContextValue::Description(
+            "identifier/string or identifier with aliases",
+        )))
         .parse_next(i)?;
 
     let (name, aliases) = match id_and_aliases {
-      Token::Identifier(s) => (s.to_string(), vec![]),
-      Token::String(s) => (s, vec![]),
-      Token::IdentifierWithAliases(v) => {
-        let name = v.first().unwrap().to_string();
-        let aliases = v[1..].iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        (name, aliases)
-      },
-      _ => unreachable!(),
+        Token::Identifier(s) => (s.to_string(), vec![]),
+        Token::String(s) => (s, vec![]),
+        Token::IdentifierWithAliases(v) => {
+            let name = v.first().unwrap().to_string();
+            let aliases = v[1..].iter().map(|s| s.to_string()).collect::<Vec<_>>();
+            (name, aliases)
+        }
+        _ => unreachable!(),
     };
 
     Ok(NameAndAliases { name, aliases })
 }
 
 fn parse_string_literal(i: &mut &[Token]) -> PResult<String> {
-    any
-        .verify(|t| matches!(t, Token::String(_)))
-        .context(StrContext::Expected(StrContextValue::Description("string literal")))
+    any.verify(|t| matches!(t, Token::String(_)))
+        .context(StrContext::Expected(StrContextValue::Description(
+            "string literal",
+        )))
         .parse_next(i)
         .map(|t| match t {
             Token::String(s) => s,
@@ -75,9 +74,10 @@ fn parse_string_literal(i: &mut &[Token]) -> PResult<String> {
 }
 
 fn parse_at_identifier<'a>(i: &mut &'a [Token]) -> PResult<&'a str> {
-    any
-        .verify(|t| matches!(t, Token::AtIdentifier(_)))
-        .context(StrContext::Expected(StrContextValue::Description("at identifier")))
+    any.verify(|t| matches!(t, Token::AtIdentifier(_)))
+        .context(StrContext::Expected(StrContextValue::Description(
+            "at identifier",
+        )))
         .parse_next(i)
         .map(|t| match t {
             Token::AtIdentifier(s) => s,
@@ -91,7 +91,7 @@ fn parse_at_identifiers<'a>(i: &mut &'a [Token]) -> PResult<Vec<&'a str>> {
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct TabryFile {
-    pub statements: Vec<Statement>
+    pub statements: Vec<Statement>,
 }
 
 // =========== SIMPLE STATEMENTS (CAN'T TAKE A BLOCK) ===========
@@ -104,7 +104,9 @@ pub struct CmdStatement {
 fn parse_cmd_statement(i: &mut &[Token]) -> PResult<CmdStatement> {
     let mut parser = preceded(Token::Identifier("cmd"), parse_identifier);
     let name = parser.parse_next(i)?;
-    Ok(CmdStatement { name: name.to_string() })
+    Ok(CmdStatement {
+        name: name.to_string(),
+    })
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -141,7 +143,8 @@ fn parse_include_statement(i: &mut &[Token]) -> PResult<IncludeStatement> {
             1..,
             parse_at_identifier.map(|s| s.to_string())
         )
-    }).parse_next(i)
+    })
+    .parse_next(i)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -160,25 +163,27 @@ pub enum OptsStatement {
 // Matches: 'foo', '("foo")', '(a,b "c!" d)'
 fn parse_identifier_and_aliases_or_list(i: &mut &[Token]) -> PResult<Vec<NameAndAliases>> {
     alt((
-            parse_identifier_and_aliases.map(|v| vec![v]),
-            delimited(
-                Token::OpenParen,
-                repeat(1.., parse_identifier_and_aliases),
-                Token::CloseParen
-            )
-    )).parse_next(i)
+        parse_identifier_and_aliases.map(|v| vec![v]),
+        delimited(
+            Token::OpenParen,
+            repeat(1.., parse_identifier_and_aliases),
+            Token::CloseParen,
+        ),
+    ))
+    .parse_next(i)
 }
 
 // Matches: 'foo', '(foo bar)'
 fn parse_identifier_or_list<'a>(i: &mut &'a [Token]) -> PResult<Vec<&'a str>> {
     alt((
-            parse_identifier.map(|v| vec![v]),
-            delimited(
-                Token::OpenParen,
-                repeat(1.., parse_identifier),
-                Token::CloseParen
-            )
-    )).parse_next(i)
+        parse_identifier.map(|v| vec![v]),
+        delimited(
+            Token::OpenParen,
+            repeat(1.., parse_identifier),
+            Token::CloseParen,
+        ),
+    ))
+    .parse_next(i)
 }
 
 fn parse_opts_id_string_or_list(i: &mut &[Token]) -> PResult<Vec<String>> {
@@ -190,15 +195,20 @@ fn parse_opts_id_string_or_list(i: &mut &[Token]) -> PResult<Vec<String>> {
         // opts const (foo "bar")
         delimited(
             Token::OpenParen,
-            repeat(1.., alt((
-                parse_string_literal,
-                parse_identifier.map(|s| s.to_string())
-            ))),
-            Token::CloseParen
-        )
+            repeat(
+                1..,
+                alt((
+                    parse_string_literal,
+                    parse_identifier.map(|s| s.to_string()),
+                )),
+            ),
+            Token::CloseParen,
+        ),
     ))
     .context(StrContext::Label("opts const options"))
-    .context(StrContext::Expected(StrContextValue::Description("identifier or string or (a \"b\" c) list of values")))
+    .context(StrContext::Expected(StrContextValue::Description(
+        "identifier or string or (a \"b\" c) list of values",
+    )))
     .parse_next(i)
 }
 
@@ -206,25 +216,27 @@ fn parse_opts_statement(i: &mut &[Token]) -> PResult<OptsStatement> {
     preceded(
         Token::Identifier("opts"),
         alt((
-                Token::Identifier("file").map(|_| OptsStatement::File),
-                Token::Identifier("dir").map(|_| OptsStatement::Dir),
-                seq!(OptsStatement::Const {
-                    _: Token::Identifier("const"),
-                    values: parse_opts_id_string_or_list
-                }),
-                seq!(OptsStatement::Shell {
-                    _: Token::Identifier("shell"),
-                    value: parse_string_literal
-                }),
-                seq!(OptsStatement::Delegate {
-                    _: Token::Identifier("delegate"),
-                    value: parse_string_literal
-                })
+            Token::Identifier("file").map(|_| OptsStatement::File),
+            Token::Identifier("dir").map(|_| OptsStatement::Dir),
+            seq!(OptsStatement::Const {
+                _: Token::Identifier("const"),
+                values: parse_opts_id_string_or_list
+            }),
+            seq!(OptsStatement::Shell {
+                _: Token::Identifier("shell"),
+                value: parse_string_literal
+            }),
+            seq!(OptsStatement::Delegate {
+                _: Token::Identifier("delegate"),
+                value: parse_string_literal
+            }),
         ))
-            .context(StrContext::Expected(StrContextValue::Description("opts type (file, dir, const, etc.) and value if appropriate")))
-    ).parse_next(i)
+        .context(StrContext::Expected(StrContextValue::Description(
+            "opts type (file, dir, const, etc.) and value if appropriate",
+        ))),
+    )
+    .parse_next(i)
 }
-
 
 // ============ SUB, FLAG, ARG, DEFARGS, DEFOPTS STATEMENTS (CAN TAKE A BLOCK) ============
 
@@ -235,7 +247,7 @@ pub struct DefArgsStatement {
 }
 
 fn parse_defargs_statement(i: &mut &[Token]) -> PResult<DefArgsStatement> {
-   seq!(DefArgsStatement {
+    seq!(DefArgsStatement {
       _: Token::Identifier("defargs"),
       name: parse_at_identifier
           .map(|s| s.to_string())
@@ -245,7 +257,8 @@ fn parse_defargs_statement(i: &mut &[Token]) -> PResult<DefArgsStatement> {
           .context(StrContext::Label("defargs block"))
           .context(StrContext::Expected(StrContextValue::Description("statements"))),
       _: Token::CloseBrace
-    }).parse_next(i)
+    })
+    .parse_next(i)
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -255,7 +268,7 @@ pub struct DefOptsStatement {
 }
 
 fn parse_defopts_statement(i: &mut &[Token]) -> PResult<DefOptsStatement> {
-   seq!(DefOptsStatement {
+    seq!(DefOptsStatement {
       _: Token::Identifier("defopts"),
       name: parse_at_identifier
           .map(|s| s.to_string())
@@ -265,7 +278,8 @@ fn parse_defopts_statement(i: &mut &[Token]) -> PResult<DefOptsStatement> {
           .context(StrContext::Label("defopts block"))
           .context(StrContext::Expected(StrContextValue::Description("statements"))),
       _: Token::CloseBrace
-    }).parse_next(i)
+    })
+    .parse_next(i)
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -298,11 +312,17 @@ fn parse_sub_statement(i: &mut &[Token]) -> PResult<SubStatement> {
               Token::CloseBrace
           )
       )
-    ).parse_next(i)?;
+    )
+    .parse_next(i)?;
 
     let includes = includes.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     let statements = statements_in_block.unwrap_or_default();
-    Ok(SubStatement { names_and_aliases, includes, description, statements })
+    Ok(SubStatement {
+        names_and_aliases,
+        includes,
+        description,
+        statements,
+    })
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -318,24 +338,25 @@ pub struct ArgStatement {
 fn parse_arg_statement(i: &mut &[Token]) -> PResult<ArgStatement> {
     let (optional, varargs, names, description, includes, statements_in_block) = seq!(
         opt(Token::Identifier("opt")).map(|t| t.is_some()),
-        alt((
-                Token::Identifier("arg"),
-                Token::Identifier("varargs")
-        )).map(|t| t.is_identifier("varargs")),
+        alt((Token::Identifier("arg"), Token::Identifier("varargs")))
+            .map(|t| t.is_identifier("varargs")),
         opt(parse_identifier_or_list.context(StrContext::Label("arg name"))),
         opt(parse_string_literal),
         parse_at_identifiers,
-        opt(
-            delimited(
-                Token::OpenBrace,
-                repeat(0.., parse_statement_inside_arg)
+        opt(delimited(
+            Token::OpenBrace,
+            repeat(0.., parse_statement_inside_arg)
                 .context(StrContext::Label("arg block"))
-                .context(StrContext::Expected(StrContextValue::Description("statements"))),
-                Token::CloseBrace
-            )
-        )
-    ).parse_next(i)?;
-    let names : Vec<String> = names.map(|v| v.iter().map(|id| id.to_string()).collect()).unwrap_or_default();
+                .context(StrContext::Expected(StrContextValue::Description(
+                    "statements"
+                ))),
+            Token::CloseBrace
+        ))
+    )
+    .parse_next(i)?;
+    let names: Vec<String> = names
+        .map(|v| v.iter().map(|id| id.to_string()).collect())
+        .unwrap_or_default();
     let includes = includes.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     let arg = ArgStatement {
         names,
@@ -360,25 +381,25 @@ pub struct FlagStatement {
 
 fn parse_flag_statement(i: &mut &[Token]) -> PResult<FlagStatement> {
     let (required, has_arg, names_and_aliases, description, includes, statements_in_block) = seq!(
-      opt(Token::Identifier("reqd")).map(|t| t.is_some()),
-      alt((
-          Token::Identifier("flag"),
-          Token::Identifier("flagarg")
-      )).map(|t| t.is_identifier("flagarg")),
-      parse_identifier_and_aliases_or_list
-          .context(StrContext::Label("flag name and aliases or list of sub names and aliases")),
-      opt(parse_string_literal),
-      parse_at_identifiers,
-      opt(
-          delimited(
-              Token::OpenBrace,
-              repeat(0.., parse_statement_inside_flag)
-                  .context(StrContext::Label("flag block"))
-                  .context(StrContext::Expected(StrContextValue::Description("statements"))),
-              Token::CloseBrace
-          )
-      )
-    ).parse_next(i)?;
+        opt(Token::Identifier("reqd")).map(|t| t.is_some()),
+        alt((Token::Identifier("flag"), Token::Identifier("flagarg")))
+            .map(|t| t.is_identifier("flagarg")),
+        parse_identifier_and_aliases_or_list.context(StrContext::Label(
+            "flag name and aliases or list of sub names and aliases"
+        )),
+        opt(parse_string_literal),
+        parse_at_identifiers,
+        opt(delimited(
+            Token::OpenBrace,
+            repeat(0.., parse_statement_inside_flag)
+                .context(StrContext::Label("flag block"))
+                .context(StrContext::Expected(StrContextValue::Description(
+                    "statements"
+                ))),
+            Token::CloseBrace
+        ))
+    )
+    .parse_next(i)?;
     // TODO dry up with parse_sub_statement
     let includes = includes.iter().map(|s| s.to_string()).collect::<Vec<_>>();
     Ok(FlagStatement {
@@ -390,7 +411,6 @@ fn parse_flag_statement(i: &mut &[Token]) -> PResult<FlagStatement> {
         statements: statements_in_block.unwrap_or_default(),
     })
 }
-
 
 // =========== STATEMENT ENUMS (BASED ON CONTEXT) ===========
 
@@ -427,8 +447,10 @@ fn parse_statement_inside_sub(i: &mut &[Token]) -> PResult<Statement> {
         parse_arg_statement.map(Statement::Arg),
         parse_flag_statement.map(Statement::Flag),
     ))
-        .context(StrContext::Expected(StrContextValue::Description("desc, include, sub, arg, or flag statement")))
-        .parse_next(i)
+    .context(StrContext::Expected(StrContextValue::Description(
+        "desc, include, sub, arg, or flag statement",
+    )))
+    .parse_next(i)
 }
 
 fn parse_statement_inside_arg(i: &mut &[Token]) -> PResult<Statement> {
@@ -438,7 +460,9 @@ fn parse_statement_inside_arg(i: &mut &[Token]) -> PResult<Statement> {
         parse_title_statement.map(Statement::Title),
         parse_opts_statement.map(Statement::Opts),
     ))
-        .context(StrContext::Expected(StrContextValue::Description("desc, include, opts, or title statement")))
+    .context(StrContext::Expected(StrContextValue::Description(
+        "desc, include, opts, or title statement",
+    )))
     .parse_next(i)
 }
 
@@ -448,10 +472,11 @@ fn parse_statement_inside_flag(i: &mut &[Token]) -> PResult<Statement> {
         parse_include_statement.map(Statement::Include),
         parse_opts_statement.map(Statement::Opts),
     ))
-        .context(StrContext::Expected(StrContextValue::Description("desc, include, or opts statement")))
+    .context(StrContext::Expected(StrContextValue::Description(
+        "desc, include, or opts statement",
+    )))
     .parse_next(i)
 }
-
 
 fn parse_statement_top_level(i: &mut &[Token]) -> PResult<Statement> {
     alt((
@@ -464,7 +489,9 @@ fn parse_statement_top_level(i: &mut &[Token]) -> PResult<Statement> {
         parse_defargs_statement.map(Statement::DefArgs),
         parse_defopts_statement.map(Statement::DefOpts),
     ))
-        .context(StrContext::Expected(StrContextValue::Description("cmd, desc, include, sub, arg, or flag statement")))
+    .context(StrContext::Expected(StrContextValue::Description(
+        "cmd, desc, include, sub, arg, or flag statement",
+    )))
     .parse_next(i)
 }
 
@@ -487,9 +514,7 @@ mod tests {
         let tokens = vec![Token::Identifier("arg")];
         let parse_tree = parse_tabry.parse(&tokens).unwrap();
         let expected = TabryFile {
-            statements: vec![
-                Arg(ArgStatement::default())
-            ]
+            statements: vec![Arg(ArgStatement::default())],
         };
 
         assert_eq!(parse_tree, expected);
@@ -517,26 +542,23 @@ mod tests {
         ];
         let parse_tree = parse_tabry.parse(&tokens).unwrap();
         let expected = TabryFile {
-            statements: vec![
-                Arg(ArgStatement {
-                    names: vec![],
-                    optional: false,
-                    varargs: false,
-                    description: None,
-                    includes: vec![],
-                    statements: vec![
-                        Opts(OptsStatement::Const {
-                            values: vec!["hello \"world\"".to_string(), "abc".to_string()]
-                        }),
-                        Opts(OptsStatement::Const {
-                            values: vec!["def".to_string()]
-                        })
-                    ],
-                })
-            ]
+            statements: vec![Arg(ArgStatement {
+                names: vec![],
+                optional: false,
+                varargs: false,
+                description: None,
+                includes: vec![],
+                statements: vec![
+                    Opts(OptsStatement::Const {
+                        values: vec!["hello \"world\"".to_string(), "abc".to_string()],
+                    }),
+                    Opts(OptsStatement::Const {
+                        values: vec!["def".to_string()],
+                    }),
+                ],
+            })],
         };
 
         assert_eq!(parse_tree, expected);
     }
 }
-

@@ -17,8 +17,8 @@ fn alias_matches(alias: &str, token: &str) -> bool {
 
 impl TokenMatching for TabryConcreteFlag {
     fn match_token(&self, token: &str) -> bool {
-        alias_matches(&self.name, token) ||
-            self.aliases.iter().any(|alias| alias_matches(alias, token))
+        alias_matches(&self.name, token)
+            || self.aliases.iter().any(|alias| alias_matches(alias, token))
     }
 }
 
@@ -37,7 +37,7 @@ mod tests {
             options: vec![],
             arg: false,
             required: false,
-            description: Some("foo".into())
+            description: Some("foo".into()),
         }
     }
 
@@ -77,5 +77,4 @@ mod tests {
         assert!(!flag.match_token("-"));
         assert!(!flag.match_token("-ba"));
     }
-
 }

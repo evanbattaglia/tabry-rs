@@ -1,6 +1,6 @@
 use super::types::*;
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use thiserror::Error;
 
 /// Struct holding the Config (the description of a command ands its subcommands/flags/args) with
@@ -28,7 +28,7 @@ pub enum TabryConfError {
     #[error("internal error: {0}")]
     InvalidConfig(String),
     #[error("Missing include: {0}")]
-    MissingInclude(String)
+    MissingInclude(String),
 }
 
 impl TabryConf {
@@ -42,7 +42,10 @@ impl TabryConf {
     /// Get a TabryConcreteSub from the config, given it's "path" in the subcommand tree.
     /// This also resolves includes.
     /// e.g. given "sub foo { sub bar { .. } }", get the sub with dig_sub(["foo", "bar"])
-    pub fn dig_sub(&self, sub_names_vec: &Vec<String>) -> Result<&TabryConcreteSub, TabryConfError> {
+    pub fn dig_sub(
+        &self,
+        sub_names_vec: &Vec<String>,
+    ) -> Result<&TabryConcreteSub, TabryConfError> {
         let subs = self.dig_subs(sub_names_vec)?;
         return Ok(subs.last().unwrap());
     }
@@ -50,22 +53,32 @@ impl TabryConf {
     // TODO switch to iterator without intermediate Vec
     /// Get all `TabryConcreteSub`s given a path in the subcommand tree, i.e., find the sub found
     /// by dig_sub along with all its ancestor subs.
-    pub fn dig_subs(&self, sub_names_vec: &Vec<String>) -> Result<Vec<&TabryConcreteSub>, TabryConfError> {
+    pub fn dig_subs(
+        &self,
+        sub_names_vec: &Vec<String>,
+    ) -> Result<Vec<&TabryConcreteSub>, TabryConfError> {
         let mut result = vec![&self.main];
 
         for name in sub_names_vec {
             let subs_here = &result.last().unwrap().subs;
-            let next = self.find_in_subs(subs_here, name, false)
-                ?.ok_or(TabryConfError::InternalError("sub not found in dig sub".to_owned()))?;
+            let next =
+                self.find_in_subs(subs_here, name, false)?
+                    .ok_or(TabryConfError::InternalError(
+                        "sub not found in dig sub".to_owned(),
+                    ))?;
             result.push(next);
         }
 
         Ok(result)
     }
 
-    pub fn find_in_subs<'a>(&'a self, subs: &'a [TabrySub], name: &String, check_aliases: bool)
-        -> Result<Option<&TabryConcreteSub>, TabryConfError> {
-        let concrete_subs : Vec<&TabryConcreteSub> = self.flatten_subs(subs)?;
+    pub fn find_in_subs<'a>(
+        &'a self,
+        subs: &'a [TabrySub],
+        name: &String,
+        check_aliases: bool,
+    ) -> Result<Option<&TabryConcreteSub>, TabryConfError> {
+        let concrete_subs: Vec<&TabryConcreteSub> = self.flatten_subs(subs)?;
 
         for sub in concrete_subs {
             let sub_name = Self::unwrap_sub_name(sub)?;
@@ -79,7 +92,9 @@ impl TabryConf {
     pub fn unwrap_sub_name(sub: &TabryConcreteSub) -> Result<&str, TabryConfError> {
         match &sub.name {
             Some(s) => Ok(s.as_ref()),
-            None => Err(TabryConfError::InvalidConfig("sub without name not valid except as main sub".to_owned()))
+            None => Err(TabryConfError::InvalidConfig(
+                "sub without name not valid except as main sub".to_owned(),
+            )),
         }
     }
 
@@ -97,59 +112,62 @@ impl TabryConf {
         }
     }
 
-    pub fn flatten_subs<'a>(&'a self, subs: &'a [TabrySub]) ->
-        Result<Vec<&TabryConcreteSub>, TabryConfError> {
-
-        let vecofvecs = subs.iter().map(|sub|
-            match sub {
+    pub fn flatten_subs<'a>(
+        &'a self,
+        subs: &'a [TabrySub],
+    ) -> Result<Vec<&TabryConcreteSub>, TabryConfError> {
+        let vecofvecs = subs
+            .iter()
+            .map(|sub| match sub {
                 TabrySub::TabryIncludeSub { include } => {
                     // Lookup include, which may return an error
                     let inc = self.get_arg_include(include)?;
                     // Flatten the include's subs recursively (which may return an error)
                     self.flatten_subs(&inc.subs)
-                },
+                }
                 TabrySub::TabryConcreteSub(s) =>
-                    // This is a concrete sub, add it
+                // This is a concrete sub, add it
+                {
                     Ok(vec![s])
-            }
-        ).collect::<Result<Vec<_>,_>>()?;
+                }
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         // collect() will return an error if there were one, so now we just have flatten the
         // vectors
         Ok(vecofvecs.into_iter().flatten().collect::<Vec<_>>())
     }
 
-
     // TODO: Ugh, this is complicated with the Box and dyn. not sure of a better way. Seems
     // one flat_map call can return different types of iterators or something.
-    pub fn expand_flags<'a>(&'a self, flags: &'a [TabryFlag]) -> Box<dyn Iterator<Item = &TabryConcreteFlag> + 'a> {
-        let iter = flags.iter().flat_map(|flag|
-            match flag {
-                TabryFlag::TabryIncludeFlag { include } => {
-                    // TODO: bubble up error instead of unwrap (use get_arg_include)
-                    let include = self.arg_includes.get(include).unwrap();
-                    self.expand_flags(&include.flags)
-                }
-                TabryFlag::TabryConcreteFlag(concrete_flag) =>
-                    Box::new(std::iter::once(concrete_flag))
+    pub fn expand_flags<'a>(
+        &'a self,
+        flags: &'a [TabryFlag],
+    ) -> Box<dyn Iterator<Item = &TabryConcreteFlag> + 'a> {
+        let iter = flags.iter().flat_map(|flag| match flag {
+            TabryFlag::TabryIncludeFlag { include } => {
+                // TODO: bubble up error instead of unwrap (use get_arg_include)
+                let include = self.arg_includes.get(include).unwrap();
+                self.expand_flags(&include.flags)
             }
-        );
+            TabryFlag::TabryConcreteFlag(concrete_flag) => Box::new(std::iter::once(concrete_flag)),
+        });
         Box::new(iter)
     }
 
     // TODO: this is an exact copy of the the above expand_flags()
-    pub fn expand_args<'a>(&'a self, args: &'a [TabryArg]) -> Box<dyn Iterator<Item = &TabryConcreteArg> + 'a> {
-        let iter = args.iter().flat_map(|arg|
-            match arg {
-                TabryArg::TabryIncludeArg { include } => {
-                    // TODO: bubble up error instead of unwrap (use get_arg_include)
-                    let include = self.arg_includes.get(include).unwrap();
-                    self.expand_args(&include.args)
-                }
-                TabryArg::TabryConcreteArg(concrete_arg) =>
-                    Box::new(std::iter::once(concrete_arg))
+    pub fn expand_args<'a>(
+        &'a self,
+        args: &'a [TabryArg],
+    ) -> Box<dyn Iterator<Item = &TabryConcreteArg> + 'a> {
+        let iter = args.iter().flat_map(|arg| match arg {
+            TabryArg::TabryIncludeArg { include } => {
+                // TODO: bubble up error instead of unwrap (use get_arg_include)
+                let include = self.arg_includes.get(include).unwrap();
+                self.expand_args(&include.args)
             }
-        );
+            TabryArg::TabryConcreteArg(concrete_arg) => Box::new(std::iter::once(concrete_arg)),
+        });
         Box::new(iter)
     }
 }

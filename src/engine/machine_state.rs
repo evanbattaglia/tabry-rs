@@ -1,6 +1,6 @@
-use std::fmt;
-use std::collections::HashMap;
 use serde::ser::{Serialize, SerializeStruct};
+use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Debug, Default, PartialEq)]
 pub enum MachineStateMode {
@@ -33,7 +33,9 @@ pub struct MachineState {
 
 impl Serialize for MachineState {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         let mut n_fields = 7;
         // TODO this seems manual (have to check twice) and rest of this function
         // feels very repetitive
@@ -63,7 +65,7 @@ impl Serialize for MachineState {
 impl fmt::Debug for MachineState {
     // TODO not really fond of this method either...
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut res = & mut f.debug_struct("MachineState");
+        let mut res = &mut f.debug_struct("MachineState");
         // TODO: macro to add to all if not default
         // except it doesn't work for vec... or bool, if serde_json is used...
         // there might even be another way to just not show defaults
@@ -101,12 +103,13 @@ mod tests {
     fn test_json_representation() {
         let state = MachineState {
             help: true,
-            flag_args: HashMap::from([ ("foo".to_owned(), "bar".to_owned()) ]),
+            flag_args: HashMap::from([("foo".to_owned(), "bar".to_owned())]),
             args: vec!["myarg".to_owned()],
             ..Default::default()
         };
         let actual = serde_json::value::to_value(state);
-        let expected = serde_json::from_str::<serde_json::Value>(r#"
+        let expected = serde_json::from_str::<serde_json::Value>(
+            r#"
           {
               "subs": [],
               "help": true,
@@ -116,7 +119,8 @@ mod tests {
               "mode": "subcommand",
               "args": ["myarg"]
           }
-        "#);
+        "#,
+        );
         assert_json_eq!(actual.unwrap(), expected.unwrap());
     }
 }

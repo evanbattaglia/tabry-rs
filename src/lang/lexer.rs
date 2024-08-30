@@ -1,23 +1,9 @@
 use winnow::{
-    Parser,
-    PResult,
-    error::ErrMode,
     ascii::multispace1,
-    combinator::{
-        alt,
-        delimited,
-        dispatch,
-        preceded,
-        separated,
-        terminated,
-        repeat,
-        peek,
-    },
-    token::{
-        take_till,
-        take_while,
-        any,
-    },
+    combinator::{alt, delimited, dispatch, peek, preceded, repeat, separated, terminated},
+    error::ErrMode,
+    token::{any, take_till, take_while},
+    PResult, Parser,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,7 +29,9 @@ impl<'a> Token<'a> {
 
 // not sure why the type signatures got so crazy...
 /// Match one specific token.
-impl<'a, E: for<'b> winnow::error::ParserError<&'b [Token<'a>]>> winnow::Parser<&[Token<'a>], Token<'a>, E> for Token<'a> {
+impl<'a, E: for<'b> winnow::error::ParserError<&'b [Token<'a>]>>
+    winnow::Parser<&[Token<'a>], Token<'a>, E> for Token<'a>
+{
     #[inline(always)]
     fn parse_next(&mut self, input: &mut &[Token<'a>]) -> Result<Token<'a>, ErrMode<E>> {
         any.verify(|t| t == self).parse_next(input)
@@ -52,10 +40,13 @@ impl<'a, E: for<'b> winnow::error::ParserError<&'b [Token<'a>]>> winnow::Parser<
 
 fn string_fragment(i: &mut &str) -> PResult<String> {
     alt((
-      "\\\\".map(|_| "\\".to_owned()),
-      take_till(1.., ['"', '\\']).verify(|s: &str| !s.is_empty()).map(|s: &str| s.to_owned()),
-      "\\\"".map(|_| "\"".to_owned()),
-     )).parse_next(i)
+        "\\\\".map(|_| "\\".to_owned()),
+        take_till(1.., ['"', '\\'])
+            .verify(|s: &str| !s.is_empty())
+            .map(|s: &str| s.to_owned()),
+        "\\\"".map(|_| "\"".to_owned()),
+    ))
+    .parse_next(i)
 }
 
 fn string_internals(i: &mut &str) -> PResult<String> {
@@ -63,17 +54,17 @@ fn string_internals(i: &mut &str) -> PResult<String> {
         .fold(String::new, |mut acc, s| {
             acc.push_str(&s);
             acc
-        }).parse_next(i)
+        })
+        .parse_next(i)
 }
 
-fn string<'a> (i: &mut &'a str) -> PResult<Token<'a>> {
+fn string<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
     let s = delimited("\"", string_internals, "\"").parse_next(i)?;
     Ok(Token::String(s))
 }
 
 fn identifier_str<'a>(i: &mut &'a str) -> PResult<&'a str> {
-    take_while(1.., |c: char| c.is_alphanumeric() || c == '_' || c == '-')
-        .parse_next(i)
+    take_while(1.., |c: char| c.is_alphanumeric() || c == '_' || c == '-').parse_next(i)
 }
 
 fn identifier_with_aliases<'a>(i: &mut &'a str) -> PResult<Vec<&'a str>> {
@@ -91,12 +82,18 @@ fn identifier_with_optional_aliases<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
 }
 
 fn at_identifier<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
-    let (_, id) = ("@", take_while(1.., |c: char| c.is_alphanumeric() || c == '-' || c == '_')).parse_next(i)?;
+    let (_, id) = (
+        "@",
+        take_while(1.., |c: char| c.is_alphanumeric() || c == '-' || c == '_'),
+    )
+        .parse_next(i)?;
     Ok(Token::AtIdentifier(id))
 }
 
 fn comment(i: &mut &str) -> PResult<()> {
-    ("#", take_while(1.., |c: char| c != '\n')).void().parse_next(i)
+    ("#", take_while(1.., |c: char| c != '\n'))
+        .void()
+        .parse_next(i)
 }
 
 fn token<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
@@ -108,7 +105,8 @@ fn token<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
         '}' => "}".value(Token::CloseBrace),
         '@' => at_identifier,
         _ => identifier_with_optional_aliases,
-    }.parse_next(i)
+    }
+    .parse_next(i)
 }
 
 fn optional_ignored_text(i: &mut &str) -> PResult<()> {
@@ -118,14 +116,15 @@ fn optional_ignored_text(i: &mut &str) -> PResult<()> {
 pub fn lex<'a>(i: &mut &'a str) -> PResult<Vec<Token<'a>>> {
     preceded(
         optional_ignored_text,
-        repeat(1.., terminated(token, optional_ignored_text))
-    ).parse_next(i)
+        repeat(1.., terminated(token, optional_ignored_text)),
+    )
+    .parse_next(i)
 }
 
 #[cfg(test)]
 mod tests {
-    use winnow::Parser;
     use super::*;
+    use winnow::Parser;
 
     #[test]
     fn test_lexing() {
@@ -149,9 +148,9 @@ mod tests {
             CloseBrace,
             Identifier("arg"),
             Identifier("flag"),
-            Identifier("f")
+            Identifier("f"),
         ];
-        let res : Result<Vec<Token>, _> = lex.parse(s);
+        let res: Result<Vec<Token>, _> = lex.parse(s);
         assert_eq!(res, Ok(expected));
     }
 
@@ -159,5 +158,4 @@ mod tests {
     fn test_lex_failure() {
         assert!(lex.parse("oops!").is_err());
     }
-
 }

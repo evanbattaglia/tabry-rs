@@ -3,28 +3,18 @@ use anyhow::Context;
 use std::io::Read;
 
 use tabry::{
-    app::{
-        cached_jsons,
-        config_finder,
-        shell_tokenizer,
-    },
-    core::{
-        config,
-        util,
-    },
-    engine::{
-        machine,
-        options_finder,
-    }
+    app::{cached_jsons, config_finder, shell_tokenizer},
+    core::{config, util},
+    engine::{machine, options_finder},
 };
 
 // can maybe move some/most of this to app module?
 
 fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> anyhow::Result<()> {
-    let config = config::TabryConf::from_file(config_filename)
-        .with_context(|| "invalid config file")?;
-    let result = machine::Machine::run(config, tokens)
-        .with_context(|| "Tabry machine parse error")?;
+    let config =
+        config::TabryConf::from_file(config_filename).with_context(|| "invalid config file")?;
+    let result =
+        machine::Machine::run(config, tokens).with_context(|| "Tabry machine parse error")?;
 
     if util::is_debug() {
         println!("{}", serde_json::to_string_pretty(&result.state)?);
@@ -103,7 +93,7 @@ fn compile() {
         Err(e) => {
             eprintln!("compile error: {}", e);
             std::process::exit(1);
-        },
+        }
         Ok(conf) => conf,
     };
     let json = serde_json::to_string_pretty(&tabry_conf);
@@ -144,8 +134,6 @@ fn main() {
         [_, "bash"] => bash(None),
         [_, "bash", imports_path] => bash(Some(imports_path)),
         [_, compline, comppoint] => run_as_compline(compline, comppoint).unwrap(),
-        _ => usage(args_strs.first().copied())
+        _ => usage(args_strs.first().copied()),
     }
 }
-
-

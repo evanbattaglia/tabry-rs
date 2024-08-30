@@ -1,6 +1,4 @@
 TODO before "public announcement"
-* tests to 60% coverage
-* is there a prettier for rust?
 * put on cargo; nix; instructions for installing. Maybe brew & deb too.
 * test on zsh, fish
 --- very soon after

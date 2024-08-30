@@ -1,9 +1,9 @@
+mod compiler;
 mod lexer;
 mod parser;
-mod compiler;
 
-use winnow::Parser;
 use thiserror::Error;
+use winnow::Parser;
 
 #[derive(Error, Debug)]
 pub enum LangError {
@@ -17,17 +17,14 @@ pub enum LangError {
     CompileError(#[from] compiler::CompileError),
 }
 
-pub fn compile(
-    tabry_file_str: &str
-) -> Result<crate::core::config::TabryConf, LangError> {
-    let tokens = lexer::lex.parse(tabry_file_str)
+pub fn compile(tabry_file_str: &str) -> Result<crate::core::config::TabryConf, LangError> {
+    let tokens = lexer::lex
+        .parse(tabry_file_str)
         .map_err(|e| LangError::LexError(e.to_string()))?;
-    let parse_tree = parser::parse_tabry.parse(&tokens)
+    let parse_tree = parser::parse_tabry
+        .parse(&tokens)
         .map_err(|e| LangError::ParseError(format!("{:#?}", e)))?;
     let res = compiler::compile(parse_tree)?;
 
     Ok(res)
 }
-
-
-

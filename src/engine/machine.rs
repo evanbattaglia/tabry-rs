@@ -1,7 +1,7 @@
 use std::mem::swap;
 
-use crate::core::config::TabryConfError;
 use crate::core::config::TabryConf;
+use crate::core::config::TabryConfError;
 use crate::core::util::is_debug;
 
 use super::machine_state::{MachineState, MachineStateMode};
@@ -14,7 +14,7 @@ use super::result::TabryResult;
 pub struct Machine {
     config: TabryConf,
     pub state: MachineState,
-    log: bool
+    log: bool,
 }
 
 impl Machine {
@@ -22,7 +22,7 @@ impl Machine {
         Machine {
             config,
             state: MachineState::default(),
-            log: is_debug()
+            log: is_debug(),
         }
     }
 
@@ -61,7 +61,6 @@ impl Machine {
         }
     }
 
-
     /*
      * TODO using this doesn't work below
     fn current_sub(&mut self) -> Result<&types::TabryConcreteSub, TabryConfError> {
@@ -87,7 +86,6 @@ impl Machine {
         } else {
             Ok(false)
         }
-
     }
 
     fn match_dashdash(&mut self, token: &String) -> bool {
@@ -101,21 +99,28 @@ impl Machine {
 
     fn match_flag(&mut self, token: &str) -> Result<bool, TabryConfError> {
         if self.state.dashdash {
-            return Ok(false)
+            return Ok(false);
         }
 
         // Check flags for each Subcommand in stack, starting with the most specific Subcommand.
-        for sub in self.config.dig_subs(&self.state.subcommand_stack)?.iter().rev() {
-          for flag in self.config.expand_flags(&sub.flags) {
-            if flag.match_token(token) {
-              if flag.arg {
-                self.state.mode = MachineStateMode::Flagarg { current_flag: flag.name.clone() }
-              } else {
-                self.state.flags.insert(flag.name.clone(), true);
-              }
-              return Ok(true);
+        for sub in self
+            .config
+            .dig_subs(&self.state.subcommand_stack)?
+            .iter()
+            .rev()
+        {
+            for flag in self.config.expand_flags(&sub.flags) {
+                if flag.match_token(token) {
+                    if flag.arg {
+                        self.state.mode = MachineStateMode::Flagarg {
+                            current_flag: flag.name.clone(),
+                        }
+                    } else {
+                        self.state.flags.insert(flag.name.clone(), true);
+                    }
+                    return Ok(true);
+                }
             }
-          }
         }
 
         Ok(false)
@@ -149,13 +154,13 @@ impl Machine {
 
     fn log(&self, msg: String) {
         if self.log {
-          println!("{}; current state: {:?}", msg, self.state);
+            println!("{}; current state: {:?}", msg, self.state);
         }
     }
 
     /// Call this after machine is done to morph into a result
     pub fn to_result(self) -> TabryResult {
-      TabryResult::new(self.config, self.state)
+        TabryResult::new(self.config, self.state)
     }
 }
 
@@ -184,8 +189,18 @@ mod tests {
     // combined.
     fn merge_flags_and_flag_args(machine_state_as_serde_value: &mut serde_json::Value) {
         let val_as_obj = machine_state_as_serde_value.as_object_mut().unwrap();
-        let mut flag_args = val_as_obj.get("flag_args").unwrap().as_object().unwrap().clone();
-        val_as_obj.get_mut("flags").unwrap().as_object_mut().unwrap().append(&mut flag_args);
+        let mut flag_args = val_as_obj
+            .get("flag_args")
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .clone();
+        val_as_obj
+            .get_mut("flags")
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .append(&mut flag_args);
         val_as_obj.remove_entry("flag_args");
     }
 
@@ -209,8 +224,8 @@ mod tests {
                 machine.next(&token.as_str().unwrap().to_string()).unwrap();
             }
 
-
-            let machine_state_as_serde_value = &mut serde_json::value::to_value(&machine.state).unwrap();
+            let machine_state_as_serde_value =
+                &mut serde_json::value::to_value(&machine.state).unwrap();
             merge_flags_and_flag_args(machine_state_as_serde_value);
 
             assert_json_eq!(machine_state_as_serde_value, expected_state);
@@ -219,12 +234,10 @@ mod tests {
 
     #[test]
     fn test_missing_include() {
-      let tabry_conf: TabryConf = load_fixture_file("missing_include.json");
-      let mut machine = Machine::new(tabry_conf.clone());
-      machine.next(&"foo".to_owned()).unwrap();
-      let result = machine.next(&"bar".to_owned());
-      assert!(matches!(result, Err(TabryConfError::MissingInclude { .. })));
+        let tabry_conf: TabryConf = load_fixture_file("missing_include.json");
+        let mut machine = Machine::new(tabry_conf.clone());
+        machine.next(&"foo".to_owned()).unwrap();
+        let result = machine.next(&"bar".to_owned());
+        assert!(matches!(result, Err(TabryConfError::MissingInclude { .. })));
     }
 }
-
-
