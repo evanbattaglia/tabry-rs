@@ -3,9 +3,11 @@ TODO before "public announcement"
 * is there a prettier for rust?
 * put on cargo; nix; instructions for installing. Maybe brew & deb too.
 * test on zsh, fish
----
-* tests to 80% coverage (goal 100% eventually)
+--- very soon after
 * combining the three includes (sub, arg, flag) in the JSON format would be great
-* go through TODOs
-* I think I need to use bytes instead of strings for reading argv
 * flags like -abc -> -a, -b, -c
+* go through TODOs
+-- soon after
+* tests to 80% coverage (goal 100% eventually)
+* set up github automated tests
+* I think I need to use bytes instead of strings for reading argv

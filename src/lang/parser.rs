@@ -16,7 +16,8 @@ use super::lexer::Token;
 // TODO errors are still hard to figure out, doesn't seem like the context() calls are doing much
 
 // In this parse tree, anything that comes from Lexer as &'a str, we could avoid copying into a
-// String. But I don't think it's worth the hassle of more complex memory management.
+// String. But at least for the moment I don't think it's worth the hassle of more complex memory
+// management.
 
 // =========== RAW TOKENS / BUILDING BLOCKS ==========
 
@@ -88,14 +89,14 @@ fn parse_at_identifiers<'a>(i: &mut &'a [Token]) -> PResult<Vec<&'a str>> {
     repeat(0.., parse_at_identifier).parse_next(i)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct TabryFile {
     pub statements: Vec<Statement>
 }
 
 // =========== SIMPLE STATEMENTS (CAN'T TAKE A BLOCK) ===========
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct CmdStatement {
     pub name: String,
 }
@@ -106,7 +107,7 @@ fn parse_cmd_statement(i: &mut &[Token]) -> PResult<CmdStatement> {
     Ok(CmdStatement { name: name.to_string() })
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct DescStatement {
     pub desc: String,
 }
@@ -117,7 +118,7 @@ fn parse_desc_statement(i: &mut &[Token]) -> PResult<DescStatement> {
     Ok(DescStatement { desc })
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct TitleStatement {
     pub title: String,
 }
@@ -128,7 +129,7 @@ fn parse_title_statement(i: &mut &[Token]) -> PResult<TitleStatement> {
     Ok(TitleStatement { title })
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct IncludeStatement {
     pub includes: Vec<String>,
 }
@@ -143,7 +144,7 @@ fn parse_include_statement(i: &mut &[Token]) -> PResult<IncludeStatement> {
     }).parse_next(i)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OptsStatement {
     File,
     Dir,
@@ -227,7 +228,7 @@ fn parse_opts_statement(i: &mut &[Token]) -> PResult<OptsStatement> {
 
 // ============ SUB, FLAG, ARG, DEFARGS, DEFOPTS STATEMENTS (CAN TAKE A BLOCK) ============
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct DefArgsStatement {
     pub name: String,
     pub statements: Vec<Statement>,
@@ -247,7 +248,7 @@ fn parse_defargs_statement(i: &mut &[Token]) -> PResult<DefArgsStatement> {
     }).parse_next(i)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct DefOptsStatement {
     pub name: String,
     pub statements: Vec<Statement>,
@@ -267,13 +268,13 @@ fn parse_defopts_statement(i: &mut &[Token]) -> PResult<DefOptsStatement> {
     }).parse_next(i)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct NameAndAliases {
     pub name: String,
     pub aliases: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct SubStatement {
     pub names_and_aliases: Vec<NameAndAliases>,
     pub description: Option<String>,
@@ -304,7 +305,7 @@ fn parse_sub_statement(i: &mut &[Token]) -> PResult<SubStatement> {
     Ok(SubStatement { names_and_aliases, includes, description, statements })
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct ArgStatement {
     pub names: Vec<String>,
     pub optional: bool,
@@ -347,7 +348,7 @@ fn parse_arg_statement(i: &mut &[Token]) -> PResult<ArgStatement> {
     Ok(arg)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct FlagStatement {
     pub names_and_aliases: Vec<NameAndAliases>,
     pub required: bool,
@@ -393,7 +394,7 @@ fn parse_flag_statement(i: &mut &[Token]) -> PResult<FlagStatement> {
 
 // =========== STATEMENT ENUMS (BASED ON CONTEXT) ===========
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Statement {
     // in top-level, sub, arg, flag, defargs, defopts
     Include(IncludeStatement),
@@ -481,55 +482,61 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_TODO() {
+    fn test_simple_arg_statement() {
+        use Statement::*;
         let tokens = vec![Token::Identifier("arg")];
         let parse_tree = parse_tabry.parse(&tokens).unwrap();
-        let debug_str = format!("{:?}", parse_tree);
-        assert_eq!(debug_str, "")
+        let expected = TabryFile {
+            statements: vec![
+                Arg(ArgStatement::default())
+            ]
+        };
+
+        assert_eq!(parse_tree, expected);
+    }
+
+    // TODO it'll probably be easier (and better, for documentation purposes, maybe) to test the lexer + parser together, maybe even the compiler too?
+    // TODO get the rest from Tabry JS compiler
+
+    #[test]
+    fn test_arg_statement_with_const_opts() {
+        use Statement::*;
+        let tokens = vec![
+            Token::Identifier("arg"),
+            Token::OpenBrace,
+            Token::Identifier("opts"),
+            Token::Identifier("const"),
+            Token::OpenParen,
+            Token::String("hello \"world\"".to_owned()),
+            Token::Identifier("abc"),
+            Token::CloseParen,
+            Token::Identifier("opts"),
+            Token::Identifier("const"),
+            Token::Identifier("def"),
+            Token::CloseBrace,
+        ];
+        let parse_tree = parse_tabry.parse(&tokens).unwrap();
+        let expected = TabryFile {
+            statements: vec![
+                Arg(ArgStatement {
+                    names: vec![],
+                    optional: false,
+                    varargs: false,
+                    description: None,
+                    includes: vec![],
+                    statements: vec![
+                        Opts(OptsStatement::Const {
+                            values: vec!["hello \"world\"".to_string(), "abc".to_string()]
+                        }),
+                        Opts(OptsStatement::Const {
+                            values: vec!["def".to_string()]
+                        })
+                    ],
+                })
+            ]
+        };
+
+        assert_eq!(parse_tree, expected);
     }
 }
 
-/*
-
-
-TabryFile {
-  statements: [
-    Arg(ArgStatement {
-      names: [],
-      optional: false,
-      varargs: false,
-      description: None,
-      includes: [],
-      statements: []
-    })
-  ]
-}
- 
-(source_file
-  (arg_statement
-    (arg_type)
-    (block
-      (opts_const_statement (string))
-      (opts_const_statement (string)))))
----
-
-==============
-Arg with two opts
-==============
-
-arg {
-  opts const "hello \"world\""
-  opts const abc
-}
-
----
-
-(source_file
-  (arg_statement
-    (arg_type)
-    (block
-      (opts_const_statement (string))
-      (opts_const_statement (string)))))
-
-
-*/
