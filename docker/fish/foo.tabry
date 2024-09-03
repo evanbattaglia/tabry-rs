@@ -1,0 +1,23 @@
+cmd foo
+
+sub bar {
+  arg file {
+    opts const (car motorcycle)
+    opts file
+  }
+}
+
+sub baz {
+  arg directory {
+    opts const (car motorcycle)
+    opts dir
+    opts file
+  }
+}
+
+sub qux {
+  arg directory {
+    opts const (car motorcycle)
+    opts dir
+  }
+}
