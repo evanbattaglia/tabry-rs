@@ -82,6 +82,8 @@ fn usage(cmd_name: Option<&str>) {
     eprintln!("  list all commands that tabry can find configs for");
     eprintln!("Usage: {} compile < file.tabry > file.json", cmd_name);
     eprintln!("  compile a tabry file to json");
+    eprintln!("Usage: {} bash", cmd_name);
+    eprintln!("  prints bash code to be eval'd to setup tabry completions");
     std::process::exit(1);
 }
 
