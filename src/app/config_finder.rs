@@ -1,5 +1,6 @@
 // find *.tabry of *.json for command in TABRY_CONFIG_PATH
 
+use std::borrow::Cow;
 use thiserror::Error;
 const EXTENSIONS: [&str; 2] = [".tabry", ".json"];
 
@@ -17,10 +18,19 @@ pub fn import_path() -> String {
     }
 }
 
+fn expand_tilde_to_home(path: &str) -> Cow<'_, str> {
+    if path.starts_with("~/") {
+        let home = std::env::var("HOME").unwrap();
+        Cow::Owned(format!("{}{}", home, &path[1..]))
+    } else {
+        Cow::Borrowed(path)
+    }
+}
+
 pub fn find_tabry_config(command_name: &str) -> Result<String, ConfigFinderError> {
-    for import_dir in import_path().split(':') {
+    for import_dir in import_path().split(':').map(expand_tilde_to_home) {
         for ext in &EXTENSIONS {
-            let mut path = std::path::PathBuf::from(import_dir);
+            let mut path = std::path::PathBuf::from(import_dir.as_ref());
             path.push(format!("{}{}", command_name, ext));
             let path = path.to_str().unwrap();
             // if exists:
