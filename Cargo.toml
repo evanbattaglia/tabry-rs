@@ -1,6 +1,6 @@
 [package]
 name = "tabry"
-version = "0.0.1"
+version = "0.0.1" # Sync this with the version in ./default.nix
 edition = "2021"
 description = "Utility (and mini-language) for shell completions (\"tab completion\") for external programs"
 license = "MIT"
