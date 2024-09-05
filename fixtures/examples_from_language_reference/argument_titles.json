@@ -1,0 +1,16 @@
+{
+  "cmd": null,
+  "main": {
+    "args": [
+      {
+        "name": "thing_to_search_for",
+        "title": "thing to search for"
+      },
+      {
+        "name": "files_to_load",
+        "title": "file to load",
+        "varargs": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+cmd mydeploy
+
+# Default command acts on project-and-environment
+include @project-and-environment
+
+# status command acts and project-and-environment as well
+sub status @project-and-environment @verbose
+
+# list command takes no position args, but takes an optional "env" flag
+sub list @verbose {
+  flagarg env @environment
+}
+
+defopts @environment {
+  opts const (prod beta dev)
+}
+
+defargs @verbose {
+  flag verbose "Show more info"
+}
+
+defargs @project-and-environment {
+  arg project "The project" { opts const (project1 project2) }
+  arg environment "The environment" @environment
+}

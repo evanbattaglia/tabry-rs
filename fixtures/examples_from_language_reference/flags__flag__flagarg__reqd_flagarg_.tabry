@@ -1,0 +1,7 @@
+flag dry-run,d
+flag dry-run2,r "Don't act, only show what would be done"
+flagarg f,format { opts const (json yml) }
+flagarg env,e "The environment (this must be given)" {
+  opts const (prod beta dev)
+}
+flag (interactive,i force,f)

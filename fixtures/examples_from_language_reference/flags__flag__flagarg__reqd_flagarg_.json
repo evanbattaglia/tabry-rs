@@ -1,0 +1,71 @@
+{
+  "cmd": null,
+  "main": {
+    "flags": [
+      {
+        "name": "dry-run",
+        "aliases": [
+          "d"
+        ]
+      },
+      {
+        "name": "dry-run2",
+        "aliases": [
+          "r"
+        ],
+        "description": "Don't act, only show what would be done"
+      },
+      {
+        "name": "f",
+        "aliases": [
+          "format"
+        ],
+        "arg": true,
+        "options": [
+          {
+            "type": "const",
+            "value": "json"
+          },
+          {
+            "type": "const",
+            "value": "yml"
+          }
+        ]
+      },
+      {
+        "name": "env",
+        "aliases": [
+          "e"
+        ],
+        "description": "The environment (this must be given)",
+        "arg": true,
+        "options": [
+          {
+            "type": "const",
+            "value": "prod"
+          },
+          {
+            "type": "const",
+            "value": "beta"
+          },
+          {
+            "type": "const",
+            "value": "dev"
+          }
+        ]
+      },
+      {
+        "name": "interactive",
+        "aliases": [
+          "i"
+        ]
+      },
+      {
+        "name": "force",
+        "aliases": [
+          "f"
+        ]
+      }
+    ]
+  }
+}

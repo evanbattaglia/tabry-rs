@@ -1,0 +1,6 @@
+sub mycmd {
+  desc "
+    My command:
+      * It does stuff
+  "
+}

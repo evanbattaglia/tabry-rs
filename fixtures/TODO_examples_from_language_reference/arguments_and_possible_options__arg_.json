@@ -1,0 +1,52 @@
+{
+  "cmd": null,
+  "main": {
+    "args": [
+      {
+        "name": "vehicle_type1"
+      },
+      {
+        "name": "vehicle_type3",
+        "description": "The type of vehicle"
+      },
+      {
+        "name": "vehicle_type4",
+        "description": "The type of vehicle"
+      },
+      {
+        "options": [
+          {
+            "type": "const",
+            "value": "a"
+          }
+        ]
+      },
+      {
+        "name": "bool1",
+        "options": [
+          {
+            "type": "const",
+            "value": "T"
+          },
+          {
+            "type": "const",
+            "value": "F"
+          }
+        ]
+      },
+      {
+        "name": "bool2",
+        "options": [
+          {
+            "type": "const",
+            "value": "T"
+          },
+          {
+            "type": "const",
+            "value": "F"
+          }
+        ]
+      }
+    ]
+  }
+}

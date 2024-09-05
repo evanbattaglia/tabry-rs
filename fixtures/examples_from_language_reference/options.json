@@ -1,0 +1,53 @@
+{
+  "cmd": null,
+  "main": {
+    "args": [
+      {
+        "options": [
+          {
+            "type": "const",
+            "value": "hello"
+          },
+          {
+            "type": "const",
+            "value": "hello \"world\""
+          },
+          {
+            "type": "const",
+            "value": "T"
+          },
+          {
+            "type": "const",
+            "value": "F"
+          },
+          {
+            "type": "const",
+            "value": "true"
+          },
+          {
+            "type": "const",
+            "value": "false"
+          },
+          {
+            "type": "const",
+            "value": "yes"
+          },
+          {
+            "type": "const",
+            "value": "no"
+          },
+          {
+            "type": "shell",
+            "value": "mycmd list-things"
+          },
+          {
+            "type": "file"
+          },
+          {
+            "type": "dir"
+          }
+        ]
+      }
+    ]
+  }
+}

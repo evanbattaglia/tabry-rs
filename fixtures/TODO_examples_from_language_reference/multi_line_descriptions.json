@@ -1,0 +1,11 @@
+{
+  "cmd": null,
+  "main": {
+    "subs": [
+      {
+        "name": "mycmd",
+        "description": "My command:\n  * It does stuff"
+      }
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "cmd": "foo",
+  "main": {
+    "args": [
+      {
+        "name": "toplevel-arg"
+      }
+    ],
+    "flags": [
+      {
+        "name": "dryrun"
+      }
+    ],
+    "subs": [
+      {
+        "name": "mysub1",
+        "subs": [
+          {
+            "name": "mysub2",
+            "flags": [
+              {
+                "name": "someopt"
+              }
+            ],
+            "args": [
+              {
+                "name": "mysub2-arg",
+                "optional": true
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

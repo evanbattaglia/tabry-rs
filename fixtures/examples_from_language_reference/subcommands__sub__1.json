@@ -1,0 +1,46 @@
+{
+  "cmd": null,
+  "main": {
+    "subs": [
+      {
+        "name": "list",
+        "description": "List the things"
+      },
+      {
+        "name": "new",
+        "aliases": [
+          "n"
+        ],
+        "description": "Create a thing"
+      },
+      {
+        "name": "delete",
+        "aliases": [
+          "d"
+        ],
+        "description": "Delete a thing",
+        "args": [
+          {
+            "name": "thing",
+            "description": "The thing to delete",
+            "options": [
+              {
+                "type": "shell",
+                "value": "mycmd list"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "do-something"
+      },
+      {
+        "name": "do-something-else",
+        "aliases": [
+          "dse"
+        ]
+      }
+    ]
+  }
+}

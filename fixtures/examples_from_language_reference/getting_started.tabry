@@ -1,0 +1,13 @@
+cmd control-vehicle
+
+# The vehicle argument
+# Note: comments must be on a line of their own
+arg {
+  opts const car
+  opts const bike
+}
+
+arg {
+  opts const go
+  opts const stop
+}

@@ -1,0 +1,33 @@
+{
+  "cmd": null,
+  "main": {
+    "args": [
+      {
+        "name": "first-arg-mandatory"
+      },
+      {
+        "name": "second-arg-optional",
+        "optional": true
+      },
+      {
+        "name": "rest-args-optional",
+        "optional": true,
+        "varargs": true,
+        "options": [
+          {
+            "type": "const",
+            "value": "foo"
+          },
+          {
+            "type": "const",
+            "value": "bar"
+          },
+          {
+            "type": "const",
+            "value": "waz"
+          }
+        ]
+      }
+    ]
+  }
+}

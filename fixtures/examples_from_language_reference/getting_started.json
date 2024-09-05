@@ -1,0 +1,31 @@
+{
+  "cmd": "control-vehicle",
+  "main": {
+    "args": [
+      {
+        "options": [
+          {
+            "type": "const",
+            "value": "car"
+          },
+          {
+            "type": "const",
+            "value": "bike"
+          }
+        ]
+      },
+      {
+        "options": [
+          {
+            "type": "const",
+            "value": "go"
+          },
+          {
+            "type": "const",
+            "value": "stop"
+          }
+        ]
+      }
+    ]
+  }
+}

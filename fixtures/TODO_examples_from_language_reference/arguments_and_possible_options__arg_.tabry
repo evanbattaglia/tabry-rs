@@ -1,0 +1,10 @@
+arg vehicle_type1
+arg vehicle_type3 "The type of vehicle"
+arg vehicle_type4 {
+  desc "The type of vehicle"
+}
+arg { opts const a }
+arg (bool1 bool2) {
+  opts const T
+  opts const F
+}

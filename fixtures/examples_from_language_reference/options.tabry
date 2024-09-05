@@ -1,0 +1,8 @@
+arg {
+  opts const hello
+  opts const "hello \"world\""
+  opts const (T F true false yes no)
+  opts shell "mycmd list-things"
+  opts file
+  opts dir
+}

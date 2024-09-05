@@ -1,0 +1,7 @@
+sub list "List the things"
+sub new,n "Create a thing"
+sub delete,d {
+  desc "Delete a thing"
+  arg thing "The thing to delete" { opts shell "mycmd list" }
+}
+sub (do-something do-something-else,dse)

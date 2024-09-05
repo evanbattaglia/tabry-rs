@@ -1,0 +1,3 @@
+arg first-arg-mandatory
+opt arg second-arg-optional
+opt varargs rest-args-optional { opts const (foo bar waz) }

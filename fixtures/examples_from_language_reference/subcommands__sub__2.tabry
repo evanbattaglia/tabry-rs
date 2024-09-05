@@ -1,0 +1,11 @@
+cmd foo
+arg toplevel-arg
+
+flag dryrun
+
+sub mysub1 {
+  sub mysub2 {
+    flag someopt
+    opt arg mysub2-arg
+  }
+}

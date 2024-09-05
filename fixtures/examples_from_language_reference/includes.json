@@ -1,0 +1,129 @@
+{
+  "cmd": "mydeploy",
+  "main": {
+    "args": [
+      {
+        "include": "project-and-environment"
+      }
+    ],
+    "flags": [
+      {
+        "include": "project-and-environment"
+      }
+    ],
+    "subs": [
+      {
+        "include": "project-and-environment"
+      },
+      {
+        "name": "status",
+        "args": [
+          {
+            "include": "project-and-environment"
+          },
+          {
+            "include": "verbose"
+          }
+        ],
+        "flags": [
+          {
+            "include": "project-and-environment"
+          },
+          {
+            "include": "verbose"
+          }
+        ],
+        "subs": [
+          {
+            "include": "project-and-environment"
+          },
+          {
+            "include": "verbose"
+          }
+        ]
+      },
+      {
+        "name": "list",
+        "args": [
+          {
+            "include": "verbose"
+          }
+        ],
+        "flags": [
+          {
+            "include": "verbose"
+          },
+          {
+            "name": "env",
+            "options": [
+              {
+                "type": "include",
+                "value": "environment"
+              }
+            ],
+            "arg": true
+          }
+        ],
+        "subs": [
+          {
+            "include": "verbose"
+          }
+        ]
+      }
+    ]
+  },
+  "option_includes": {
+    "environment": [
+      {
+        "type": "const",
+        "value": "prod"
+      },
+      {
+        "type": "const",
+        "value": "beta"
+      },
+      {
+        "type": "const",
+        "value": "dev"
+      }
+    ]
+  },
+  "arg_includes": {
+    "verbose": {
+      "flags": [
+        {
+          "name": "verbose",
+          "description": "Show more info"
+        }
+      ]
+    },
+    "project-and-environment": {
+      "args": [
+        {
+          "name": "project",
+          "description": "The project",
+          "options": [
+            {
+              "type": "const",
+              "value": "project1"
+            },
+            {
+              "type": "const",
+              "value": "project2"
+            }
+          ]
+        },
+        {
+          "name": "environment",
+          "options": [
+            {
+              "type": "include",
+              "value": "environment"
+            }
+          ],
+          "description": "The environment"
+        }
+      ]
+    }
+  }
+}
