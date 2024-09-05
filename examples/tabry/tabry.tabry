@@ -1,0 +1,6 @@
+cmd tabry
+
+arg compline
+arg comppoint
+
+sub (commands compile fish bash)
