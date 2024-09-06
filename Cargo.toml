@@ -5,8 +5,6 @@ edition = "2021"
 description = "Utility (and mini-language) for shell completions (\"tab completion\") for external programs"
 license = "MIT"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 anyhow = "1.0.72"
 serde = { version = "1.0", features = ["derive"] }
@@ -17,3 +15,23 @@ winnow = "0.6.18"
 
 [dev-dependencies]
 assert-json-diff = "2.0.2"
+
+[package.metadata.deb]
+maintainer = "Evan Battaglia <ebattaglia@instructure.com>"
+copyright = "2024, Evan Battaglia <ebattaglia@instructure.com>"
+license-file = ["LICENSE", "2"]
+extended-description = """\
+Tabry allows you to easily write tab completion for external \
+commands which do not support tab completion, including your \
+own scripts and aliases. tabry especially targets CLIs with \
+"git-style" subcommands or nested subcommands. \
+See https://github.com/evanbattaglia/tabry and \
+/usr/share/doc/tabry/README.md for more information."""
+depends = "$auto"
+section = "utility"
+priority = "optional"
+assets = [
+    ["target/release/tabry", "usr/bin/", "755"],
+    ["README.md", "usr/share/doc/tabry/README.md", "644"],
+    ["examples/*/*", "usr/share/doc/tabry/examples", "644"]
+]
