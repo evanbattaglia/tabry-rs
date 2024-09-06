@@ -70,6 +70,8 @@ pub struct TabryConcreteSub {
     pub flags: Vec<TabryFlag>,
     #[serde(default)]
     pub subs: Vec<TabrySub>,
+    #[serde(default)]
+    pub includes: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,4 +89,6 @@ pub struct TabryArgInclude {
     pub flags: Vec<TabryFlag>,
     #[serde(default)]
     pub subs: Vec<TabrySub>,
+    #[serde(default)]
+    pub includes: Vec<String>,
 }

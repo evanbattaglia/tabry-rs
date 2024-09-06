@@ -5,6 +5,7 @@ TODO before "public announcement"
 * put on cargo
 * more examples / language reference in this repo.
    delegate "super aliases"
+    -> but delegate not working in fish, and not in all cases in bash (works for docker, not for git)
 * bump version number and add deb
 * better instructions for installing (build from source, cargo, nix, deb)
 

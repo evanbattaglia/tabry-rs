@@ -20,6 +20,7 @@ fn make_new_sub() -> types::TabryConcreteSub {
         args: vec![],
         flags: vec![],
         aliases: vec![],
+        includes: vec![],
         description: None,
     }
 }
@@ -34,12 +35,7 @@ fn add_subs_from_sub_statement(subs: &mut Vec<types::TabrySub>, stmt: parser::Su
         // the whole statement. maybe I should pass a reference that can be copied, but would have
         // to change references all the way down
         sub.description.clone_from(&stmt.description);
-        add_sub_arg_flag_includes(
-            &mut sub.subs,
-            &mut sub.args,
-            &mut sub.flags,
-            stmt.includes.clone(),
-        );
+        sub.includes.extend(stmt.includes.clone());
         for stmt_in_block in &stmt.statements {
             process_statement_inside_sub(&mut sub, stmt_in_block.clone());
         }
@@ -146,27 +142,11 @@ fn add_args_from_arg_statement(args: &mut Vec<types::TabryArg>, stmt: parser::Ar
     }
 }
 
-fn add_sub_arg_flag_includes(
-    subs: &mut Vec<types::TabrySub>,
-    args: &mut Vec<types::TabryArg>,
-    flags: &mut Vec<types::TabryFlag>,
-    includes: Vec<String>,
-) {
-    for include in includes {
-        args.push(types::TabryArg::TabryIncludeArg {
-            include: include.clone(),
-        });
-        subs.push(types::TabrySub::TabryIncludeSub {
-            include: include.clone(),
-        });
-        flags.push(types::TabryFlag::TabryIncludeFlag { include });
-    }
-}
-
 fn process_statement_inside_sub_or_defargs(
     subs: &mut Vec<types::TabrySub>,
     args: &mut Vec<types::TabryArg>,
     flags: &mut Vec<types::TabryFlag>,
+    includes: &mut Vec<String>,
     statement: parser::Statement,
 ) {
     match statement {
@@ -174,7 +154,7 @@ fn process_statement_inside_sub_or_defargs(
         parser::Statement::Arg(arg_stmt) => add_args_from_arg_statement(args, arg_stmt),
         parser::Statement::Flag(flag_stmt) => add_flags_from_flag_statement(flags, flag_stmt),
         parser::Statement::Include(include_stmt) => {
-            add_sub_arg_flag_includes(subs, args, flags, include_stmt.includes)
+            includes.extend(include_stmt.includes);
         }
         _ => unreachable!(
             "unhandled statement in process_statement_inside_sub_or_defargs: {:?}",
@@ -190,6 +170,7 @@ fn process_statement_inside_sub(sub: &mut types::TabryConcreteSub, statement: pa
             &mut sub.subs,
             &mut sub.args,
             &mut sub.flags,
+            &mut sub.includes,
             statement,
         ),
     }
@@ -200,12 +181,14 @@ fn compile_defargs(stmt: parser::DefArgsStatement) -> (String, types::TabryArgIn
         args: vec![],
         flags: vec![],
         subs: vec![],
+        includes: vec![],
     };
     for statement in stmt.statements {
         process_statement_inside_sub_or_defargs(
             &mut arg_include.subs,
             &mut arg_include.args,
             &mut arg_include.flags,
+            &mut arg_include.includes,
             statement,
         );
     }

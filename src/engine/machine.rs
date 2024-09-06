@@ -78,7 +78,7 @@ impl Machine {
         // due to weird lifetime problem.
         let sub_here = self.config.dig_sub(&self.state.subcommand_stack)?;
 
-        if let Some(sub) = self.config.find_in_subs(&sub_here.subs, token, true)? {
+        if let Some(sub) = self.config.find_in_subs(&sub_here.subs, &sub_here.includes, token, true)? {
             let name = TabryConf::unwrap_sub_name(sub)?;
             self.state.subcommand_stack.push(name.to_owned());
             self.log(format!("STEP subcommand, add {}", name));
@@ -109,7 +109,7 @@ impl Machine {
             .iter()
             .rev()
         {
-            for flag in self.config.expand_flags(&sub.flags) {
+            for flag in self.config.expand_flags(&sub.flags, &sub.includes) {
                 if flag.match_token(token) {
                     if flag.arg {
                         self.state.mode = MachineStateMode::Flagarg {

@@ -64,8 +64,8 @@ impl OptionsFinder {
             return;
         }
 
-        let opaque_subs = &self.result.current_sub().subs;
-        let concrete_subs = self.result.config.flatten_subs(opaque_subs).unwrap();
+        let current_sub = self.result.current_sub();
+        let concrete_subs = self.result.config.flatten_subs(&current_sub.subs, &current_sub.includes).unwrap();
         for s in concrete_subs {
             // TODO: error here if no name -- only allowable for top level
             res.insert(s.name.as_ref().unwrap());
@@ -91,10 +91,11 @@ impl OptionsFinder {
             return Ok(());
         }
 
+        let current_sub = self.result.current_sub();
         let mut current_sub_flags = self
             .result
             .config
-            .expand_flags(&self.result.current_sub().flags);
+            .expand_flags(&current_sub.flags, &current_sub.includes);
         let first_reqd_flag = current_sub_flags.find(|f| f.required && !self.flag_is_used(f));
         if let Some(first_reqd_flag) = first_reqd_flag {
             Self::add_option_for_flag(res, first_reqd_flag);
@@ -107,7 +108,7 @@ impl OptionsFinder {
         }
 
         for sub in self.result.sub_stack.iter() {
-            for flag in self.result.config.expand_flags(&sub.flags) {
+            for flag in self.result.config.expand_flags(&sub.flags, &sub.includes) {
                 if !self.flag_is_used(flag) {
                     Self::add_option_for_flag(res, flag);
                 }
@@ -190,7 +191,7 @@ impl OptionsFinder {
             unreachable!()
         };
         for sub in &self.result.sub_stack {
-            for flag in self.result.config.expand_flags(&sub.flags) {
+            for flag in self.result.config.expand_flags(&sub.flags, &sub.includes) {
                 if &flag.name == current_flag {
                     self.add_options(res, &flag.options)?;
                     return Ok(());
