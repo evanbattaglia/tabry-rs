@@ -58,9 +58,37 @@ fn string_internals(i: &mut &str) -> PResult<String> {
         .parse_next(i)
 }
 
+/// Multi-line strings in tabry can be indented for readability:
+/// arg {
+///   desc "
+///     Hello
+///       World
+///   "
+/// }
+/// -> resulting string is "Hello\n  World"
+fn unindent(s: String) -> String {
+    if !(s.starts_with("\n ") || s.ends_with("\n\t")) {
+        return s;
+    }
+
+    let base_indent_chars = s[1..].chars().take_while(|c| c.is_whitespace()).count();
+
+    let lines = s.trim().lines();
+    let trimmed_lines = lines.map(|line| {
+        // min of base_indent_chars and actual indent on this line
+        let indent_here = line
+            .chars()
+            .take(base_indent_chars)
+            .take_while(|c| c.is_whitespace())
+            .count();
+        &line[indent_here..]
+    });
+    trimmed_lines.collect::<Vec<&str>>().join("\n")
+}
+
 fn string<'a>(i: &mut &'a str) -> PResult<Token<'a>> {
     let s = delimited("\"", string_internals, "\"").parse_next(i)?;
-    Ok(Token::String(s))
+    Ok(Token::String(unindent(s)))
 }
 
 fn identifier_str<'a>(i: &mut &'a str) -> PResult<&'a str> {

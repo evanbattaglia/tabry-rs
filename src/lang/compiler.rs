@@ -121,7 +121,13 @@ fn make_arg(stmt: &parser::ArgStatement, name: Option<String>) -> types::TabryAr
                     eprintln!("ignoring title: {:?}", title_stmt.title);
                 }
             }
-            parser::Statement::Desc(_desc_stmt) => {} // TODO (not supported in types module yet)
+            parser::Statement::Desc(desc_stmt) => {
+                if arg.description.is_some() {
+                    // TODO errors for real, dedup with cmd
+                    panic!("multiple desc statements found");
+                }
+                arg.description = Some(desc_stmt.desc);
+            }
             _ => unreachable!("unhandled statement in compile_arg: {:?}", stmt_in_block),
         }
     }
