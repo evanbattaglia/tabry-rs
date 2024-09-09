@@ -39,6 +39,18 @@ zellij #<tab> should now show completions
 
 You can also try copying or symlinking some of the files in [examples/tabry/](./examples/tabry/] to `~/.local/share/tabry`.
 
+# Fish
+
+```sh
+# Install tabry-rs & add completions (as shown above)
+
+# source the fish setup functions
+tabry fish | source
+
+# invoke tabry_completion_init for each command:
+tabry_completion_init "zellij"
+```
+
 # Tabry language
 
 Please see the [documentation in the Ruby project](https://github.com/evanbattaglia/tabry/blob/master/LANGUAGE_REFERENCE.md).

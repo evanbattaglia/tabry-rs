@@ -84,6 +84,8 @@ fn usage(cmd_name: Option<&str>) {
     eprintln!("  compile a tabry file to json");
     eprintln!("Usage: {} bash", cmd_name);
     eprintln!("  prints bash code to be eval'd to setup tabry completions");
+    eprintln!("Usage: {} fish", cmd_name);
+    eprintln!("  prints fish code to be eval'd to setup tabry completions");
     std::process::exit(1);
 }
 
@@ -127,6 +129,16 @@ fn bash(imports_path: Option<&&str>) {
     print!("{}", TABRY_BASH_SH);
 }
 
+const TABRY_FISH_SH: &str = include_str!("../shell/tabry_fish.fish");
+fn fish(imports_path: Option<&&str>) {
+    if let Some(path) = imports_path {
+        println!("set -x TABRY_IMPORT_PATH '{}'", escape(path));
+    }
+
+    println!("set -x _tabry_rs_executable '{}'", escaped_exe());
+    print!("{}", TABRY_FISH_SH);
+}
+
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     let args_strs = args.iter().map(|s| s.as_str()).collect::<Vec<_>>();
@@ -135,6 +147,8 @@ fn main() {
         [_, "commands"] => commands(),
         [_, "bash"] => bash(None),
         [_, "bash", imports_path] => bash(Some(imports_path)),
+        [_, "fish"] => fish(None),
+        [_, "fish", imports_path] => fish(Some(imports_path)),
         [_, compline, comppoint] => run_as_compline(compline, comppoint).unwrap(),
         _ => usage(args_strs.first().copied()),
     }
