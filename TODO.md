@@ -1,11 +1,10 @@
 TODO before "public announcement"
-* fish and nix support merged
-* zsh support/testing
 * go through TODOs and do important ones
 * combining the three includes (sub, arg, flag) in the JSON format would be great
 ---
 * put on cargo
 * more examples / language reference in this repo.
+   delegate "super aliases"
 * bump version number and add deb
 * better instructions for installing (build from source, cargo, nix, deb)
 
