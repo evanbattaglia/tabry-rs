@@ -10,6 +10,13 @@ function tabry_completion_init
   complete -c "$cmd" -f -a "(__tabry_offer_completions)"
 end
 
+# Init completions for all commands in the path
+function tabry_completion_init_all
+  for cmd in (tabry commands)
+    tabry_completion_init $cmd
+  end
+end
+
 # parse the results from tabry
 function __tabry_parse_results
   # take from $result until two newlines
@@ -91,7 +98,7 @@ function __tabry_offer_completions
   set cursor_position (commandline -C)
   set cmd (commandline)
 
-  set -l result ($_tabry_rs_executable "$cmd" "$cursor_position")
+  set -l result ($_tabry_rs_executable complete "$cmd" "$cursor_position")
 
   # get the last item
   

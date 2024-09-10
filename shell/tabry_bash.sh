@@ -1,6 +1,5 @@
 # TODO remove these notes --
 #
-#
 # # Hmm, using some of this could be useful...
 # COMP_TYPE
 # Set to an integer value corresponding to the type of completion attempted that caused a completion function to be called: TAB, for normal completion, ‘?’, for listing completions after successive tabs, ‘!’, for listing alternatives on partial word completion, ‘@’, to list completions if the word is not unmodified, or ‘%’, for menu completion. This variable is available only in shell functions and external commands invoked by the programmable completion facilities (see Programmable Completion).
@@ -10,22 +9,19 @@
 # TODO could also have a 'wizard' which asks you to put it in your .bash_profile or .bashrc or whatever, if we get it in nixpkgs it could literally be: `, tabry` which installs it in your bash_profile
 # (home-manager plugin would be nice too.)
 
-# USAGE:
-# 1. Put the following you your .bash_profile:
-#      source <(tabry bash)
-#    OR
-#      source <(tabry bash ~/.tabry:~/my-tabry-files/)
-#
-#    (You can use multiple colon-separated strings if you want instead of
-#    ~/.tabry)
-# 2. Put *.tabry and/or compiled *.json configs in the ~/.tabry directory. If you
-#   are using *.tabry files, tabry will compile and cache the results!
-# 3. Enjoy your completions!
+# TODO change tabry_rs to just tabry probably (make sure doesn't intefer with tabry ruby)
 
 _tabry_rs_executable=${_tabry_rs_executable:-$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"/.. &> /dev/null && pwd)/target/debug/tabry}
 
 _tabry_rs_complete_all() {
-  [[ -n "$1" ]] && export TABRY_IMPORT_PATH="$1"
+  if [[ -z "$TABRY_IMPORT_PATH" ]]; then
+    if [[ -n "$_tabry_rs_imports_path" ]]; then
+      export TABRY_IMPORT_PATH="$_tabry_rs_imports_path"
+    else
+      TABRY_IMPORT_PATH=~/.local/share/tabry
+    fi
+  fi
+
   [[ -x "$_tabry_rs_executable" ]] || { echo "tabry_bash.sh: error: can't find tabry executable at $_tabry_rs_executable -- if you are using the script from source rather than using via 'tabry bash', perhaps you need to run 'cargo build'?"; return 1; }
   local oldifs="$IFS"
   IFS=$'\n'
@@ -33,6 +29,10 @@ _tabry_rs_complete_all() {
       complete -F _tabry_rs_completions $cmd
   done
   IFS="$oldifs"
+}
+
+_tabry_rs_complete_one_command() {
+  complete -F _tabry_rs_completions $1
 }
 
 _tabry_rs_completions() {
@@ -65,8 +65,8 @@ _tabry_rs_completions_internal()
   local saveifs="$IFS"
   IFS=$'\n'
 
-  [[ -n "$TABRY_DEBUG" ]] && printf "%q %q %q %q\n" "$tabry_bash_executable" "$COMP_LINE" "$COMP_POINT"
-  local result=$("$tabry_bash_executable" "$COMP_LINE" "$COMP_POINT")
+  [[ -n "$TABRY_DEBUG" ]] && printf "%q %q %q %q\n" "$tabry_bash_executable" complete "$COMP_LINE" "$COMP_POINT"
+  local result=$("$tabry_bash_executable" complete "$COMP_LINE" "$COMP_POINT")
   local specials
   local specials_line
 
@@ -159,8 +159,3 @@ _tabry_rs_completions_internal()
   [[ -n "$TABRY_DEBUG" ]] && echo -n tabry end bash: && date +%s.%N >&2
 }
 
-if [[ $# -gt 0 ]]; then
-  _tabry_rs_complete_all "$1"
-else
-  _tabry_rs_complete_all ${_tabry_rs_imports_path:-~/.local/share/tabry}
-fi

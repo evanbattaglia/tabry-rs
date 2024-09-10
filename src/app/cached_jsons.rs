@@ -10,11 +10,11 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum TabryCacheError {
     #[error("error compiling tabry file -- IO error: {0}")]
-    CompileFileError(#[from] std::io::Error),
+    CompileFile(#[from] std::io::Error),
     #[error("error compiling tabry file -- invalid tabry file encountered: {0}")]
-    CompileError(#[from] crate::lang::LangError),
+    Compile(#[from] crate::lang::LangError),
     #[error("error compiling tabry file -- JSON serialization error: {0}")]
-    JSONSerializationError(#[from] serde_json::Error),
+    JSONSerialization(#[from] serde_json::Error),
 }
 
 fn modtime(filename: &str) -> Option<SystemTime> {
