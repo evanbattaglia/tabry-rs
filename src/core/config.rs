@@ -179,15 +179,22 @@ impl TabryConf {
     pub fn expand_args<'a>(
         &'a self,
         args: &'a [TabryArg],
+        includes: &'a [String],
     ) -> Box<dyn Iterator<Item = &TabryConcreteArg> + 'a> {
         let iter = args.iter().flat_map(|arg| match arg {
             TabryArg::TabryIncludeArg { include } => {
                 // TODO: bubble up error instead of unwrap (use get_arg_include)
                 let include = self.arg_includes.get(include).unwrap();
-                self.expand_args(&include.args)
+                self.expand_args(&include.args, &include.includes)
             }
             TabryArg::TabryConcreteArg(concrete_arg) => Box::new(std::iter::once(concrete_arg)),
         });
+        let iter = iter.chain(
+            includes.iter().flat_map(move |include| {
+                let inc = self.arg_includes.get(include).unwrap();
+                self.expand_args(&inc.args, &inc.includes)
+            }),
+        );
         Box::new(iter)
     }
 }

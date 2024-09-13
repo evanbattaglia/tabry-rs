@@ -166,10 +166,11 @@ impl OptionsFinder {
     }
 
     fn add_options_subcommand_args(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
+        let current_sub = self.result.current_sub();
         let sub_args = self
             .result
             .config
-            .expand_args(&self.result.current_sub().args)
+            .expand_args(&current_sub.args, &current_sub.includes)
             .collect::<Vec<_>>();
 
         if let Some(arg) = sub_args.get(self.result.state.args.len()) {
