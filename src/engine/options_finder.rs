@@ -64,8 +64,8 @@ impl OptionsFinder {
             return;
         }
 
-        let current_sub = self.result.current_sub();
-        let concrete_subs = self.result.config.flatten_subs(&current_sub.subs, &current_sub.includes).unwrap();
+        let opaque_subs = &self.result.current_sub().subs;
+        let concrete_subs = self.result.config.flatten_subs(opaque_subs).unwrap();
         for s in concrete_subs {
             // TODO: error here if no name -- only allowable for top level
             res.insert(s.name.as_ref().unwrap());
@@ -91,11 +91,10 @@ impl OptionsFinder {
             return Ok(());
         }
 
-        let current_sub = self.result.current_sub();
         let mut current_sub_flags = self
             .result
             .config
-            .expand_flags(&current_sub.flags, &current_sub.includes);
+            .expand_flags(&self.result.current_sub().flags);
         let first_reqd_flag = current_sub_flags.find(|f| f.required && !self.flag_is_used(f));
         if let Some(first_reqd_flag) = first_reqd_flag {
             Self::add_option_for_flag(res, first_reqd_flag);
@@ -108,7 +107,7 @@ impl OptionsFinder {
         }
 
         for sub in self.result.sub_stack.iter() {
-            for flag in self.result.config.expand_flags(&sub.flags, &sub.includes) {
+            for flag in self.result.config.expand_flags(&sub.flags) {
                 if !self.flag_is_used(flag) {
                     Self::add_option_for_flag(res, flag);
                 }
@@ -166,11 +165,10 @@ impl OptionsFinder {
     }
 
     fn add_options_subcommand_args(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
-        let current_sub = self.result.current_sub();
         let sub_args = self
             .result
             .config
-            .expand_args(&current_sub.args, &current_sub.includes)
+            .expand_args(&self.result.current_sub().args)
             .collect::<Vec<_>>();
 
         if let Some(arg) = sub_args.get(self.result.state.args.len()) {
@@ -192,7 +190,7 @@ impl OptionsFinder {
             unreachable!()
         };
         for sub in &self.result.sub_stack {
-            for flag in self.result.config.expand_flags(&sub.flags, &sub.includes) {
+            for flag in self.result.config.expand_flags(&sub.flags) {
                 if &flag.name == current_flag {
                     self.add_options(res, &flag.options)?;
                     return Ok(());

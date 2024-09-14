@@ -60,9 +60,9 @@ impl TabryConf {
         let mut result = vec![&self.main];
 
         for name in sub_names_vec {
-            let sub = result.last().unwrap();
+            let subs_here = &result.last().unwrap().subs;
             let next =
-                self.find_in_subs(&sub.subs, &sub.includes, name, false)?
+                self.find_in_subs(subs_here, name, false)?
                     .ok_or(TabryConfError::InternalError(
                         "sub not found in dig sub".to_owned(),
                     ))?;
@@ -75,11 +75,10 @@ impl TabryConf {
     pub fn find_in_subs<'a>(
         &'a self,
         subs: &'a [TabrySub],
-        includes: &'a Vec<String>,
         name: &String,
         check_aliases: bool,
     ) -> Result<Option<&TabryConcreteSub>, TabryConfError> {
-        let concrete_subs: Vec<&TabryConcreteSub> = self.flatten_subs(subs, includes)?;
+        let concrete_subs: Vec<&TabryConcreteSub> = self.flatten_subs(subs)?;
 
         for sub in concrete_subs {
             let sub_name = Self::unwrap_sub_name(sub)?;
@@ -116,16 +115,15 @@ impl TabryConf {
     pub fn flatten_subs<'a>(
         &'a self,
         subs: &'a [TabrySub],
-        includes: &'a Vec<String>,
     ) -> Result<Vec<&TabryConcreteSub>, TabryConfError> {
-        let mut vecofvecs = subs
+        let vecofvecs = subs
             .iter()
             .map(|sub| match sub {
                 TabrySub::TabryIncludeSub { include } => {
                     // Lookup include, which may return an error
                     let inc = self.get_arg_include(include)?;
                     // Flatten the include's subs recursively (which may return an error)
-                    self.flatten_subs(&inc.subs, &inc.includes)
+                    self.flatten_subs(&inc.subs)
                 }
                 TabrySub::TabryConcreteSub(s) =>
                 // This is a concrete sub, add it
@@ -134,15 +132,6 @@ impl TabryConf {
                 }
             })
             .collect::<Result<Vec<_>, _>>()?;
-
-        vecofvecs.extend(
-            includes.iter().map(|include| {
-                // Lookup include, which may return an error
-                let inc = self.get_arg_include(include)?;
-                // Flatten the include's subs recursively (which may return an error)
-                self.flatten_subs(&inc.subs, &inc.includes)
-            }).collect::<Result<Vec<_>, _>>()?,
-        );
 
         // collect() will return an error if there were one, so now we just have flatten the
         // vectors
@@ -154,24 +143,15 @@ impl TabryConf {
     pub fn expand_flags<'a>(
         &'a self,
         flags: &'a [TabryFlag],
-        includes: &'a [String],
     ) -> Box<dyn Iterator<Item = &TabryConcreteFlag> + 'a> {
         let iter = flags.iter().flat_map(|flag| match flag {
             TabryFlag::TabryIncludeFlag { include } => {
                 // TODO: bubble up error instead of unwrap (use get_arg_include)
                 let include = self.arg_includes.get(include).unwrap();
-                self.expand_flags(&include.flags, &include.includes)
+                self.expand_flags(&include.flags)
             }
             TabryFlag::TabryConcreteFlag(concrete_flag) => Box::new(std::iter::once(concrete_flag)),
         });
-        let iter = iter.chain(
-            includes.iter().flat_map(move |include| {
-                // TODO: bubble up error instead of unwrap
-                let inc = self.arg_includes.get(include).unwrap();
-                self.expand_flags(&inc.flags, &inc.includes)
-            }),
-        );
-
         Box::new(iter)
     }
 
@@ -179,22 +159,15 @@ impl TabryConf {
     pub fn expand_args<'a>(
         &'a self,
         args: &'a [TabryArg],
-        includes: &'a [String],
     ) -> Box<dyn Iterator<Item = &TabryConcreteArg> + 'a> {
         let iter = args.iter().flat_map(|arg| match arg {
             TabryArg::TabryIncludeArg { include } => {
                 // TODO: bubble up error instead of unwrap (use get_arg_include)
                 let include = self.arg_includes.get(include).unwrap();
-                self.expand_args(&include.args, &include.includes)
+                self.expand_args(&include.args)
             }
             TabryArg::TabryConcreteArg(concrete_arg) => Box::new(std::iter::once(concrete_arg)),
         });
-        let iter = iter.chain(
-            includes.iter().flat_map(move |include| {
-                let inc = self.arg_includes.get(include).unwrap();
-                self.expand_args(&inc.args, &inc.includes)
-            }),
-        );
         Box::new(iter)
     }
 }
