@@ -84,13 +84,11 @@ _tabry_rs_completions_internal()
       if [[ "$specials_line" == "file" ]]; then
         # File special
         # doesn't seem to be a "plusfiles" like there is for "plusdirs"
-        # TODO check if we need to shellescape
-        COMPREPLY+=($(compgen -A file "${COMP_WORDS[$COMP_CWORD]}"))
+        COMPREPLY+=($(printf "%q" "$(compgen -A file "${COMP_WORDS[$COMP_CWORD]}")"))
       elif [[ "$specials_line" == "dir" ]]; then
         # Directory special
         # If there are only directory results, use nospace to not add a space after it,
         # like "cd" tab completion does.
-        # TODO check if we need to shellescape
         [[ ${#COMPREPLY[@]} -eq 0 ]] && compopt -o nospace
         compopt -o plusdirs
       elif [[ "$specials" == "description_if_optionless" ]]; then
