@@ -1,6 +1,7 @@
 TODO before "public announcement"
 * go through TODOs and do important ones
-* combining the three includes (sub, arg, flag) in the JSON format would be great
+* is bash delegate working? (I thought it didn't with git, need to make sure I actually have tgit completion there)
+* delegate fish support would be really nice
 ---
 * put on cargo
 * more examples / language reference in this repo.
@@ -14,6 +15,8 @@ TODO before "public announcement"
 -- soon after
 * tests to 80% coverage (goal 100% eventually)
 * more TODOs from code
+* reqd flags
+* delegate varargs -- delegate rest of args
 * documentation about using the tabry gem + "completion json" for speedy tab complteion, and in tabry
 * set up github automated tests
 * I think I need to use bytes instead of strings for reading argv
