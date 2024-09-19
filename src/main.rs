@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use color_eyre::eyre::Result;
 
 #[derive(Parser)]
 #[command(name = "tabry")]
@@ -69,16 +70,20 @@ enum Subcommands {
     },
 }
 
-fn main() {
+fn main() -> Result<()> {
+    color_eyre::install()?;
+
     use Subcommands::*;
     use tabry::app::*;
     let cli = Cli::parse();
     match cli.command {
-        Complete { compline, comppoint } => run_as_compline(&compline, &comppoint).unwrap(),
+        Complete { compline, comppoint } => run_as_compline(&compline, &comppoint)?,
         Compile => compile(),
         Commands => commands(),
         Bash { import_path, no_auto } => bash(import_path.as_deref(), no_auto),
         Zsh { import_path, no_auto } => zsh(import_path.as_deref(), no_auto),
         Fish { import_path, no_auto } => fish(import_path.as_deref(), no_auto),
     }
+
+    Ok(())
 }

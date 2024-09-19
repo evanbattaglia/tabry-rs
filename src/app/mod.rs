@@ -4,7 +4,7 @@ mod config_finder;
 mod shell_tokenizer;
 
 /// Main app functionality
-use anyhow::Context;
+use color_eyre::eyre::{Context, Result, eyre};
 use std::io::Read;
 
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
     lang,
 };
 
-fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> anyhow::Result<()> {
+fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> Result<()> {
     let config =
         config::TabryConf::from_file(config_filename).with_context(|| "invalid config file")?;
     let result =
@@ -44,10 +44,11 @@ fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> 
 }
 
 // This runs using the filename plus 2nd arg as compline (shellsplits ARGV[2])
-pub fn run_as_compline(compline: &str, comppoint: &str) -> anyhow::Result<()> {
-    let comppoint = comppoint.parse::<usize>()?;
+pub fn run_as_compline(compline: &str, comppoint: &str) -> Result<()> {
+    let comppoint = comppoint.parse::<usize>().wrap_err_with(|| eyre!("Invalid compoint: {}", comppoint))?;
 
-    let tokenized_result = shell_tokenizer::split_with_comppoint(compline, comppoint)?;
+    let tokenized_result = shell_tokenizer::split_with_comppoint(compline, comppoint).wrap_err_with(|| eyre!("Failed to split compline {} on comppoint {}", compline, comppoint))?;
+
     let args = tokenized_result.arguments;
     let last_arg = tokenized_result.last_argument;
 
