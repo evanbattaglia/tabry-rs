@@ -9,7 +9,9 @@ TODO before "public announcement"
 * better instructions for installing (build from source, cargo, nix, deb)
 
 -- very soon after
+* review uses of unwrap()
 * flags like -abc -> -a, -b, -c
+- required flags
 
 -- soon after
 * tests to 80% coverage (goal 100% eventually)

@@ -51,25 +51,26 @@ impl OptionsFinder {
 
     fn add_options_subcommand(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
         // TODO: required flags
-        self.add_options_subcommand_subs(res);
+        self.add_options_subcommand_subs(res)?;
         self.add_options_subcommand_flags(res)?;
         self.add_options_subcommand_args(res)?;
 
         Ok(())
     }
 
-    fn add_options_subcommand_subs(&self, res: &mut OptionsResults) {
+    fn add_options_subcommand_subs(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
         // once arg has been given, can no longer use a subcommand
         if !self.result.state.args.is_empty() {
-            return;
+            return Ok(())
         }
 
         let opaque_subs = &self.result.current_sub().subs;
         let concrete_subs = self.result.config.flatten_subs(opaque_subs).unwrap();
         for s in concrete_subs {
-            // TODO: error here if no name -- only allowable for top level
-            res.insert(s.name.as_ref().unwrap());
+            res.insert(s.name.as_ref().ok_or(TabryConfError::SubMissingName {})?);
         }
+
+        Ok(())
     }
 
     fn flag_is_used(&self, flag: &TabryConcreteFlag) -> bool {
@@ -134,7 +135,7 @@ impl OptionsFinder {
                     let auto_complete_state = json!({
                         "cmd": self.result.config.cmd,
                         "flags": self.result.state.flags,
-                        // TODO: these are merged in ruby version.
+                        // NOTE: these are merged in ruby version.
                         "flag_args": self.result.state.flag_args,
                         "args": self.result.state.args,
                         // current_token. result.prefix???

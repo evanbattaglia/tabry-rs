@@ -29,6 +29,8 @@ pub enum TabryConfError {
     InvalidConfig(String),
     #[error("Missing include: {0}")]
     MissingInclude(String),
+    #[error("Sub missing name")]
+    SubMissingName,
 }
 
 impl TabryConf {
