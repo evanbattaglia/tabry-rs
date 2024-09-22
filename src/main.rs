@@ -78,12 +78,19 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Complete { compline, comppoint } => run_as_compline(&compline, &comppoint)?,
+<<<<<<< HEAD
         Compile => compile(),
+=======
+        Compile => compile()?,
+>>>>>>> 1b76bbe
         Commands => commands(),
         Bash { import_path, no_auto } => bash(import_path.as_deref(), no_auto),
         Zsh { import_path, no_auto } => zsh(import_path.as_deref(), no_auto),
         Fish { import_path, no_auto } => fish(import_path.as_deref(), no_auto),
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1b76bbe
     Ok(())
 }

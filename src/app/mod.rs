@@ -59,19 +59,13 @@ pub fn run_as_compline(compline: &str, comppoint: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn compile() {
+pub fn compile() -> anyhow::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
-    // TODO: I think this could be improved. maybe eyre will help
-    let tabry_conf = match lang::compile(&input) {
-        Err(e) => {
-            eprintln!("compile error: {}", e);
-            std::process::exit(1);
-        }
-        Ok(conf) => conf,
-    };
-    let json = serde_json::to_string_pretty(&tabry_conf);
-    print!("{}", json.unwrap());
+    let tabry_conf = lang::compile(&input)?;
+    let json = serde_json::to_string_pretty(&tabry_conf)?;
+    print!("{}", json);
+    Ok(())
 }
 
 pub fn commands() {
