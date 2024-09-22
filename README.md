@@ -20,7 +20,6 @@ defargs @arg-session {
 # Installation
 
 * TODO -- Nix derivation
-* TODO -- fish completion (port from ruby tabry)
 
 ```bash
 # Install:

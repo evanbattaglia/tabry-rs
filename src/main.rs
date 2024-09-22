@@ -14,11 +14,11 @@ struct Cli {
 enum Subcommands {
     /// Output completion script for bash
     /// Usage in ~/.bash_profile: `source <(tabry bash)` or
-    /// `source <(tabry bash --no-auto); _tabry_rs_complete_one_command mycmd`
+    /// `source <(tabry bash --no-auto); _tabry_complete_one_command mycmd`
     Bash {
         #[arg(long)]
         /// Do not automatically init completions for all tabry/JSON files in TABRY_IMPORT_PATH
-        /// (manually use _tabry_rs_complete_one_command for each command if you use this option)
+        /// (manually use _tabry_complete_one_command for each command if you use this option)
         no_auto: bool,
 
         #[arg(index=1)]
@@ -28,11 +28,11 @@ enum Subcommands {
 
     /// Output completion script for zsh
     /// Usage in ~/.zsh_profile: `source <(tabry zsh)` or
-    /// `source <(tabry zsh --no-auto); _tabry_rs_complete_one_command mycmd`
+    /// `source <(tabry zsh --no-auto); _tabry_complete_one_command mycmd`
     Zsh {
         #[arg(long)]
         /// Do not automatically init completions for all tabry/JSON files in TABRY_IMPORT_PATH
-        /// (manually use _tabry_rs_complete_one_command for each command if you use this option)
+        /// (manually use _tabry_complete_one_command for each command if you use this option)
         no_auto: bool,
 
         #[arg(index=1)]

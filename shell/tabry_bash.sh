@@ -1,45 +1,32 @@
-# TODO remove these notes --
-#
-# # Hmm, using some of this could be useful...
-# COMP_TYPE
-# Set to an integer value corresponding to the type of completion attempted that caused a completion function to be called: TAB, for normal completion, ‘?’, for listing completions after successive tabs, ‘!’, for listing alternatives on partial word completion, ‘@’, to list completions if the word is not unmodified, or ‘%’, for menu completion. This variable is available only in shell functions and external commands invoked by the programmable completion facilities (see Programmable Completion).
+_tabry_executable=${_tabry_executable:-$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"/.. &> /dev/null && pwd)/target/debug/tabry}
 
-####
-
-# TODO could also have a 'wizard' which asks you to put it in your .bash_profile or .bashrc or whatever, if we get it in nixpkgs it could literally be: `, tabry` which installs it in your bash_profile
-# (home-manager plugin would be nice too.)
-
-# TODO change tabry_rs to just tabry probably (make sure doesn't intefer with tabry ruby)
-
-_tabry_rs_executable=${_tabry_rs_executable:-$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"/.. &> /dev/null && pwd)/target/debug/tabry}
-
-_tabry_rs_complete_all() {
+_tabry_complete_all() {
   if [[ -z "$TABRY_IMPORT_PATH" ]]; then
-    if [[ -n "$_tabry_rs_imports_path" ]]; then
-      export TABRY_IMPORT_PATH="$_tabry_rs_imports_path"
+    if [[ -n "$_tabry_imports_path" ]]; then
+      export TABRY_IMPORT_PATH="$_tabry_imports_path"
     else
       TABRY_IMPORT_PATH=~/.local/share/tabry
     fi
   fi
 
-  [[ -x "$_tabry_rs_executable" ]] || { echo "tabry_bash.sh: error: can't find tabry executable at $_tabry_rs_executable -- if you are using the script from source rather than using via 'tabry bash', perhaps you need to run 'cargo build'?"; return 1; }
+  [[ -x "$_tabry_executable" ]] || { echo "tabry_bash.sh: error: can't find tabry executable at $_tabry_executable -- if you are using the script from source rather than using via 'tabry bash', perhaps you need to run 'cargo build'?"; return 1; }
   local oldifs="$IFS"
   IFS=$'\n'
-  for cmd in $("$_tabry_rs_executable" commands); do
-      complete -F _tabry_rs_completions $cmd
+  for cmd in $("$_tabry_executable" commands); do
+      complete -F _tabry_completions $cmd
   done
   IFS="$oldifs"
 }
 
-_tabry_rs_complete_one_command() {
-  complete -F _tabry_rs_completions $1
+_tabry_complete_one_command() {
+  complete -F _tabry_completions $1
 }
 
-_tabry_rs_completions() {
-  _tabry_rs_completions_internal "$_tabry_rs_executable"
+_tabry_completions() {
+  _tabry_completions_internal "$_tabry_executable"
 }
 
-_tabry_rs_set_compreply_from_lines() {
+_tabry_set_compreply_from_lines() {
   # Feed in lines from a variable, quoting each line.
   # Using readarray is much faster than using += many times to build the array.
   local lines="$1"
@@ -57,7 +44,7 @@ _tabry_rs_set_compreply_from_lines() {
 }
 
 # This is unchanged from ruby tabry, except to remove the second arg
-_tabry_rs_completions_internal()
+_tabry_completions_internal()
 {
   local tabry_bash_executable="$1"
 
@@ -78,7 +65,7 @@ _tabry_rs_completions_internal()
     result="$(echo "$result)"|sed '/^$/q')"
 
     # First, add anything before the double newline in (regular options)
-    _tabry_rs_set_compreply_from_lines "$result"
+    _tabry_set_compreply_from_lines "$result"
 
     while IFS= read -r specials_line; do
       if [[ "$specials_line" == "file" ]]; then
@@ -146,7 +133,7 @@ _tabry_rs_completions_internal()
       fi
     done <<< "$specials"
   else
-    _tabry_rs_set_compreply_from_lines "$result"
+    _tabry_set_compreply_from_lines "$result"
     COMPREPLY=()
     while IFS= read -r line; do
       COMPREPLY+=($(printf "%q" "$line"))

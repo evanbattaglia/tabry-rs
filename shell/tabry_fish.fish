@@ -1,8 +1,8 @@
 set -x TABRY_IMPORT_PATH "$TABRY_IMPORT_PATH:$HOME/.local/share/tabry"
 
-if not set -q _tabry_rs_executable
+if not set -q _tabry_executable
   set script_dir (dirname (status filename))
-  set -g _tabry_rs_executable "$script_dir/target/debug/tabry"
+  set -g _tabry_executable "$script_dir/target/debug/tabry"
 end
 
 function tabry_completion_init
@@ -98,7 +98,7 @@ function __tabry_offer_completions
   set cursor_position (commandline -C)
   set cmd (commandline)
 
-  set -l result ($_tabry_rs_executable complete "$cmd" "$cursor_position")
+  set -l result ($_tabry_executable complete "$cmd" "$cursor_position")
 
   # get the last item
   

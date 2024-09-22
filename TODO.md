@@ -24,3 +24,4 @@ TODO before "public announcement"
 -- much later
 * actually use argument names, titles, and descriptions -- probably a'help' thing? although I'm not sure of the use without a CLI library
 * CLI library? compile to clap (requires types)? not sure of the future
+* using COMP_TYPE (normal completion, successive, partial word, etc.) could be useful

@@ -86,28 +86,28 @@ fn escaped_exe() -> String {
 const TABRY_BASH_SH: &str = include_str!("../../shell/tabry_bash.sh");
 pub fn bash(imports_path: Option<&str>, no_auto: bool) {
     if let Some(path) = imports_path {
-        println!("_tabry_rs_imports_path={}", escape(path));
+        println!("_tabry_imports_path={}", escape(path));
     }
-    println!("_tabry_rs_executable={}", escaped_exe());
+    println!("_tabry_executable={}", escaped_exe());
     print!("{}", TABRY_BASH_SH);
 
     if !no_auto {
         // TODO name things consistently between fish + bash
-        println!("_tabry_rs_complete_all");
+        println!("_tabry_complete_all");
     }
 }
 
 const TABRY_ZSH_SH: &str = include_str!("../../shell/tabry_zsh.sh");
 pub fn zsh(imports_path: Option<&str>, no_auto: bool) {
     if let Some(path) = imports_path {
-        println!("_tabry_rs_imports_path={}", escape(path));
+        println!("_tabry_imports_path={}", escape(path));
     }
-    println!("_tabry_rs_executable={}", escaped_exe());
+    println!("_tabry_executable={}", escaped_exe());
     print!("{}", TABRY_ZSH_SH);
 
     if !no_auto {
         // TODO name things consistently between fish + zsh
-        println!("_tabry_rs_complete_all");
+        println!("_tabry_complete_all");
     }
 }
 
@@ -117,7 +117,7 @@ pub fn fish(imports_path: Option<&str>, no_auto: bool) {
         println!("set -x TABRY_IMPORT_PATH {}", escape(path));
     }
 
-    println!("set -x _tabry_rs_executable {}", escaped_exe());
+    println!("set -x _tabry_executable {}", escaped_exe());
     print!("{}", TABRY_FISH_SH);
 
     if !no_auto {
