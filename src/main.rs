@@ -40,8 +40,8 @@ enum Subcommands {
         import_path: Option<String>,
     },
 
-    /// Output completion script for bash
-    /// Usage in ~/.bash_profile: `tabry fish | source` or
+    /// Output completion script for fish
+    /// Usage in ~/.config/fish/config.fish: `tabry fish | source` or
     /// `tabry fish | source; tabry_completion_init mycmd`
     Fish {
         #[arg(long)]
@@ -67,6 +67,10 @@ enum Subcommands {
         compline: String,
         /// TODO desc
         comppoint: String,
+
+        /// Include descriptions in completions (for fish shell only)
+        #[clap(long, short, action)]
+        include_descriptions: bool,
     },
 }
 
@@ -77,13 +81,12 @@ fn main() -> Result<()> {
     use tabry::app::*;
     let cli = Cli::parse();
     match cli.command {
-        Complete { compline, comppoint } => run_as_compline(&compline, &comppoint)?,
+        Complete { compline, comppoint, include_descriptions } => run_as_compline(&compline, &comppoint, include_descriptions)?,
         Compile => compile()?,
         Commands => commands(),
         Bash { import_path, no_auto } => bash(import_path.as_deref(), no_auto),
         Zsh { import_path, no_auto } => zsh(import_path.as_deref(), no_auto),
         Fish { import_path, no_auto } => fish(import_path.as_deref(), no_auto),
     }
-
     Ok(())
 }

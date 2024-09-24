@@ -98,7 +98,7 @@ function __tabry_offer_completions
   set cursor_position (commandline -C)
   set cmd (commandline)
 
-  set -l result ($_tabry_executable complete "$cmd" "$cursor_position")
+  set -l result ($_tabry_executable complete --include-descriptions "$cmd" "$cursor_position")
 
   # get the last item
   

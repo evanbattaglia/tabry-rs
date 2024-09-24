@@ -8,19 +8,26 @@ use serde_json::json;
 
 pub struct OptionsFinder {
     result: TabryResult,
+    include_descriptions: bool,
+}
+
+#[derive(PartialEq, Eq, Hash)]
+pub struct OptionResult {
+    pub value: String,
+    pub desc: Option<String>,
 }
 
 pub struct OptionsResults {
     prefix: String,
-    pub options: HashSet<String>,
+    pub options: HashSet<OptionResult>,
     pub special_options: HashSet<String>,
 }
 
 impl OptionsResults {
-    fn insert(&mut self, value: &str) {
+    fn insert(&mut self, value: &str, desc: Option<&str>) {
         if value.starts_with(&self.prefix) {
             // TODO get_or_insert_owned() in nightly would be ideal
-            self.options.insert(value.to_owned());
+            self.options.insert(OptionResult { value: value.to_owned(), desc: desc.map(str::to_owned) });
         }
     }
 
@@ -30,8 +37,8 @@ impl OptionsResults {
 }
 
 impl OptionsFinder {
-    pub fn new(result: TabryResult) -> Self {
-        Self { result }
+    pub fn new(result: TabryResult, include_descriptions: bool) -> Self {
+        Self { result, include_descriptions }
     }
 
     pub fn options(&self, token: &str) -> Result<OptionsResults, TabryConfError> {
@@ -68,7 +75,7 @@ impl OptionsFinder {
         let concrete_subs = self.result.config.flatten_subs(opaque_subs).unwrap();
         for s in concrete_subs {
             // TODO: error here if no name -- only allowable for top level
-            res.insert(s.name.as_ref().unwrap());
+            res.insert(s.name.as_ref().unwrap(), if self.include_descriptions { s.description.as_deref() } else { None });
         }
     }
 
@@ -77,13 +84,13 @@ impl OptionsFinder {
             || self.result.state.flag_args.contains_key(&flag.name)
     }
 
-    fn add_option_for_flag(res: &mut OptionsResults, flag: &TabryConcreteFlag) {
+    fn add_option_for_flag(res: &mut OptionsResults, flag: &TabryConcreteFlag, include_descriptions: bool) {
         let flag_str = if flag.name.len() == 1 {
             format!("-{}", flag.name)
         } else {
             format!("--{}", flag.name)
         };
-        res.insert(&flag_str);
+        res.insert(&flag_str, if include_descriptions { flag.description.as_deref() } else { None });
     }
 
     fn add_options_subcommand_flags(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
@@ -97,7 +104,7 @@ impl OptionsFinder {
             .expand_flags(&self.result.current_sub().flags);
         let first_reqd_flag = current_sub_flags.find(|f| f.required && !self.flag_is_used(f));
         if let Some(first_reqd_flag) = first_reqd_flag {
-            Self::add_option_for_flag(res, first_reqd_flag);
+            Self::add_option_for_flag(res, first_reqd_flag, self.include_descriptions);
             return Ok(());
         }
 
@@ -109,7 +116,7 @@ impl OptionsFinder {
         for sub in self.result.sub_stack.iter() {
             for flag in self.result.config.expand_flags(&sub.flags) {
                 if !self.flag_is_used(flag) {
-                    Self::add_option_for_flag(res, flag);
+                    Self::add_option_for_flag(res, flag, self.include_descriptions);
                 }
             }
         }
@@ -126,7 +133,7 @@ impl OptionsFinder {
             match &opt {
                 TabryOpt::File => res.insert_special("file"),
                 TabryOpt::Dir => res.insert_special("dir"),
-                TabryOpt::Const { value } => res.insert(value),
+                TabryOpt::Const { value } => res.insert(value, None),
                 TabryOpt::Delegate { value } => {
                     res.insert_special(format!("delegate {}", value).as_str())
                 }
@@ -151,7 +158,7 @@ impl OptionsFinder {
                     let output_str = std::str::from_utf8(&output_bytes.stdout[..]).unwrap();
                     for line in output_str.split('\n') {
                         if !line.is_empty() {
-                            res.insert(line);
+                            res.insert(line, None);
                         }
                     }
                 }
@@ -213,7 +220,7 @@ mod tests {
     fn options_with_machine_state(machine_state: MachineState, token: &str) -> OptionsResults {
         let tabry_conf: TabryConf = load_fixture_file("vehicles.json");
         let tabry_result = TabryResult::new(tabry_conf, machine_state);
-        let options_finder = OptionsFinder::new(tabry_result);
+        let options_finder = OptionsFinder::new(tabry_result, false);
         options_finder.options(token).unwrap()
     }
 
@@ -241,7 +248,7 @@ mod tests {
                 };
                 let options_results = options_with_machine_state(machine_state, token);
                 let actual_strs : HashSet<&str> =
-                    options_results.options.iter().map(|s| s.as_str()).collect();
+                    options_results.options.iter().map(|s| s.value.as_str()).collect();
                 let actual_specials_strs : HashSet<&str> =
                     options_results.special_options.iter().map(|s| s.as_str()).collect();
 
