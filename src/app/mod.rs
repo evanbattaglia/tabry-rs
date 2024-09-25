@@ -59,7 +59,7 @@ pub fn run_as_compline(compline: &str, comppoint: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn compile() -> anyhow::Result<()> {
+pub fn compile() -> Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input).unwrap();
     let tabry_conf = lang::compile(&input)?;
