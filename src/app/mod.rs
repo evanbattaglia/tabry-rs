@@ -13,7 +13,7 @@ use crate::{
     lang,
 };
 
-fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> Result<()> {
+fn print_options(config_filename: &str, tokens: &[String], last_token: &str, include_descriptions: bool) -> Result<()> {
     let config =
         config::TabryConf::from_file(config_filename).with_context(|| "invalid config file")?;
     let result =
@@ -23,11 +23,14 @@ fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> 
         println!("{}", serde_json::to_string_pretty(&result.state)?);
     }
 
-    let options_finder = options_finder::OptionsFinder::new(result);
+    let options_finder = options_finder::OptionsFinder::new(result, include_descriptions);
     let opts = options_finder.options(last_token)?;
 
     for opt in &opts.options {
-        println!("{}", opt);
+        match opt.desc.as_ref() {
+            Some(desc) => println!("{}	{}", opt.value, desc),
+            None => println!("{}", opt.value),
+        }
     }
 
     if !opts.special_options.is_empty() {
@@ -44,7 +47,7 @@ fn print_options(config_filename: &str, tokens: &[String], last_token: &str) -> 
 }
 
 // This runs using the filename plus 2nd arg as compline (shellsplits ARGV[2])
-pub fn run_as_compline(compline: &str, comppoint: &str) -> Result<()> {
+pub fn run_as_compline(compline: &str, comppoint: &str, include_descriptions: bool) -> Result<()> {
     let comppoint = comppoint.parse::<usize>().wrap_err_with(|| eyre!("Invalid compoint: {}", comppoint))?;
 
     let tokenized_result = shell_tokenizer::split_with_comppoint(compline, comppoint).wrap_err_with(|| eyre!("Failed to split compline {} on comppoint {}", compline, comppoint))?;
@@ -55,7 +58,7 @@ pub fn run_as_compline(compline: &str, comppoint: &str) -> Result<()> {
     let config_file = config_finder::find_tabry_config(&tokenized_result.command_basename)?;
     let compiled_config_file = cached_jsons::resolve_and_compile_cache_file(&config_file)?;
 
-    print_options(&compiled_config_file, &args[..], &last_arg)?;
+    print_options(&compiled_config_file, &args[..], &last_arg, include_descriptions)?;
     Ok(())
 }
 
