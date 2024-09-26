@@ -1,6 +1,6 @@
 _tabry_executable=${_tabry_executable:-$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"/.. &> /dev/null && pwd)/target/debug/tabry}
 
-_tabry_complete_all() {
+_tabry_complete_all{{UNIQ_FN_ID}}() {
   if [[ -z "$TABRY_IMPORT_PATH" ]]; then
     if [[ -n "$_tabry_imports_path" ]]; then
       export TABRY_IMPORT_PATH="$_tabry_imports_path"
@@ -13,20 +13,20 @@ _tabry_complete_all() {
   local oldifs="$IFS"
   IFS=$'\n'
   for cmd in $("$_tabry_executable" commands); do
-      complete -F _tabry_completions $cmd
+      complete -F _tabry_completions{{UNIQ_FN_ID}} $cmd
   done
   IFS="$oldifs"
 }
 
-_tabry_complete_one_command() {
-  complete -F _tabry_completions $1
+_tabry_complete_one_command{{UNIQ_FN_ID}}() {
+  complete -F _tabry_completions{{UNIQ_FN_ID}} $1
 }
 
-_tabry_completions() {
-  _tabry_completions_internal "$_tabry_executable"
+_tabry_completions{{UNIQ_FN_ID}}() {
+  _tabry_completions_internal{{UNIQ_FN_ID}} "$_tabry_executable"
 }
 
-_tabry_set_compreply_from_lines() {
+_tabry_set_compreply_from_lines{{UNIQ_FN_ID}}() {
   # Feed in lines from a variable, quoting each line.
   # Using readarray is much faster than using += many times to build the array.
   local lines="$1"
@@ -44,7 +44,7 @@ _tabry_set_compreply_from_lines() {
 }
 
 # This is unchanged from ruby tabry, except to remove the second arg
-_tabry_completions_internal()
+_tabry_completions_internal{{UNIQ_FN_ID}}()
 {
   local tabry_bash_executable="$1"
 
@@ -65,7 +65,7 @@ _tabry_completions_internal()
     result="$(echo "$result)"|sed '/^$/q')"
 
     # First, add anything before the double newline in (regular options)
-    _tabry_set_compreply_from_lines "$result"
+    _tabry_set_compreply_from_lines{{UNIQ_FN_ID}} "$result"
 
     while IFS= read -r specials_line; do
       if [[ "$specials_line" == "file" ]]; then
@@ -133,7 +133,7 @@ _tabry_completions_internal()
       fi
     done <<< "$specials"
   else
-    _tabry_set_compreply_from_lines "$result"
+    _tabry_set_compreply_from_lines{{UNIQ_FN_ID}} "$result"
     COMPREPLY=()
     while IFS= read -r line; do
       COMPREPLY+=($(printf "%q" "$line"))

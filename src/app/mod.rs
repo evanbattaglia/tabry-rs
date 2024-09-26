@@ -87,43 +87,49 @@ fn escaped_exe() -> String {
 }
 
 const TABRY_BASH_SH: &str = include_str!("../../shell/tabry_bash.sh");
-pub fn bash(imports_path: Option<&str>, no_auto: bool) {
+pub fn bash(imports_path: Option<&str>, no_auto: bool, uniq_fn_id: Option<&str>) {
     if let Some(path) = imports_path {
         println!("_tabry_imports_path={}", escape(path));
     }
+    let fn_id: &str = uniq_fn_id.unwrap_or("");
     println!("_tabry_executable={}", escaped_exe());
-    print!("{}", TABRY_BASH_SH);
+
+    print!("{}", TABRY_BASH_SH.replace("{{UNIQ_FN_ID}}", fn_id));
 
     if !no_auto {
         // TODO name things consistently between fish + bash
-        println!("_tabry_complete_all");
+        println!("_tabry_complete_all{}", fn_id);
     }
 }
 
 const TABRY_ZSH_SH: &str = include_str!("../../shell/tabry_zsh.sh");
-pub fn zsh(imports_path: Option<&str>, no_auto: bool) {
+pub fn zsh(imports_path: Option<&str>, no_auto: bool, uniq_fn_id: Option<&str>) {
     if let Some(path) = imports_path {
         println!("_tabry_imports_path={}", escape(path));
     }
+    let fn_id: &str = uniq_fn_id.unwrap_or("");
     println!("_tabry_executable={}", escaped_exe());
-    print!("{}", TABRY_ZSH_SH);
+    print!("{}", TABRY_ZSH_SH.replace("{{UNIQ_FN_ID}}", fn_id));
 
     if !no_auto {
         // TODO name things consistently between fish + zsh
-        println!("_tabry_complete_all");
+        println!("_tabry_complete_all{}", fn_id);
     }
 }
 
 const TABRY_FISH_SH: &str = include_str!("../../shell/tabry_fish.fish");
-pub fn fish(imports_path: Option<&str>, no_auto: bool) {
+pub fn fish(imports_path: Option<&str>, no_auto: bool, uniq_fn_id: Option<&str>) {
     if let Some(path) = imports_path {
         println!("set -x TABRY_IMPORT_PATH {}", escape(path));
     }
 
-    println!("set -x _tabry_executable {}", escaped_exe());
-    print!("{}", TABRY_FISH_SH);
+    let fn_id: &str = uniq_fn_id.unwrap_or("");
+
+    println!("set -x _tabry_executable{} {}", fn_id, escaped_exe());
+
+    print!("{}", TABRY_FISH_SH.replace("{{UNIQ_FN_ID}}", fn_id));
 
     if !no_auto {
-        println!("tabry_completion_init_all");
+        println!("tabry_completion_init_all{}", fn_id);
     }
 }
