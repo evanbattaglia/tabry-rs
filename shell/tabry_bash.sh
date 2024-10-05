@@ -71,7 +71,11 @@ _tabry_completions_internal()
       if [[ "$specials_line" == "file" ]]; then
         # File special
         # doesn't seem to be a "plusfiles" like there is for "plusdirs"
-        COMPREPLY+=($(printf "%q" "$(compgen -A file "${COMP_WORDS[$COMP_CWORD]}")"))
+        COMPREPLY+=($(
+          compgen -A file "${COMP_WORDS[$COMP_CWORD]}" | while IFS=$'\n' read filename; do
+          printf "%q\n" "$filename"
+        done
+        ))
       elif [[ "$specials_line" == "dir" ]]; then
         # Directory special
         # If there are only directory results, use nospace to not add a space after it,
