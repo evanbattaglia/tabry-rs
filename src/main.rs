@@ -21,7 +21,7 @@ enum Subcommands {
         /// (manually use _tabry_complete_one_command for each command if you use this option)
         no_auto: bool,
 
-        #[arg(index=1)]
+        #[arg(index = 1)]
         /// Import path (colon-separated)
         import_path: Option<String>,
     },
@@ -35,7 +35,7 @@ enum Subcommands {
         /// (manually use _tabry_complete_one_command for each command if you use this option)
         no_auto: bool,
 
-        #[arg(index=1)]
+        #[arg(index = 1)]
         /// Import path (colon-separated)
         import_path: Option<String>,
     },
@@ -49,7 +49,7 @@ enum Subcommands {
         /// (manually use tabry_completion_init for each command if you use this option)
         no_auto: bool,
 
-        #[arg(index=1)]
+        #[arg(index = 1)]
         /// Import path (colon-separated)
         import_path: Option<String>,
     },
@@ -77,16 +77,29 @@ enum Subcommands {
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    use Subcommands::*;
     use tabry::app::*;
+    use Subcommands::*;
     let cli = Cli::parse();
     match cli.command {
-        Complete { compline, comppoint, include_descriptions } => run_as_compline(&compline, &comppoint, include_descriptions)?,
+        Complete {
+            compline,
+            comppoint,
+            include_descriptions,
+        } => run_as_compline(&compline, &comppoint, include_descriptions)?,
         Compile => compile()?,
         Commands => commands(),
-        Bash { import_path, no_auto } => bash(import_path.as_deref(), no_auto),
-        Zsh { import_path, no_auto } => zsh(import_path.as_deref(), no_auto),
-        Fish { import_path, no_auto } => fish(import_path.as_deref(), no_auto),
+        Bash {
+            import_path,
+            no_auto,
+        } => bash(import_path.as_deref(), no_auto),
+        Zsh {
+            import_path,
+            no_auto,
+        } => zsh(import_path.as_deref(), no_auto),
+        Fish {
+            import_path,
+            no_auto,
+        } => fish(import_path.as_deref(), no_auto),
     }
     Ok(())
 }

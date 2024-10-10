@@ -27,7 +27,10 @@ impl OptionsResults {
     fn insert(&mut self, value: &str, desc: Option<&str>) {
         if value.starts_with(&self.prefix) {
             // TODO get_or_insert_owned() in nightly would be ideal
-            self.options.insert(OptionResult { value: value.to_owned(), desc: desc.map(str::to_owned) });
+            self.options.insert(OptionResult {
+                value: value.to_owned(),
+                desc: desc.map(str::to_owned),
+            });
         }
     }
 
@@ -38,7 +41,10 @@ impl OptionsResults {
 
 impl OptionsFinder {
     pub fn new(result: TabryResult, include_descriptions: bool) -> Self {
-        Self { result, include_descriptions }
+        Self {
+            result,
+            include_descriptions,
+        }
     }
 
     pub fn options(&self, token: &str) -> Result<OptionsResults, TabryConfError> {
@@ -75,7 +81,14 @@ impl OptionsFinder {
         let concrete_subs = self.result.config.flatten_subs(opaque_subs).unwrap();
         for s in concrete_subs {
             // TODO: error here if no name -- only allowable for top level
-            res.insert(s.name.as_ref().unwrap(), if self.include_descriptions { s.description.as_deref() } else { None });
+            res.insert(
+                s.name.as_ref().unwrap(),
+                if self.include_descriptions {
+                    s.description.as_deref()
+                } else {
+                    None
+                },
+            );
         }
     }
 
@@ -84,13 +97,24 @@ impl OptionsFinder {
             || self.result.state.flag_args.contains_key(&flag.name)
     }
 
-    fn add_option_for_flag(res: &mut OptionsResults, flag: &TabryConcreteFlag, include_descriptions: bool) {
+    fn add_option_for_flag(
+        res: &mut OptionsResults,
+        flag: &TabryConcreteFlag,
+        include_descriptions: bool,
+    ) {
         let flag_str = if flag.name.len() == 1 {
             format!("-{}", flag.name)
         } else {
             format!("--{}", flag.name)
         };
-        res.insert(&flag_str, if include_descriptions { flag.description.as_deref() } else { None });
+        res.insert(
+            &flag_str,
+            if include_descriptions {
+                flag.description.as_deref()
+            } else {
+                None
+            },
+        );
     }
 
     fn add_options_subcommand_flags(&self, res: &mut OptionsResults) -> Result<(), TabryConfError> {
