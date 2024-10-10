@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "tabry"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "assert-json-diff",
  "clap",
