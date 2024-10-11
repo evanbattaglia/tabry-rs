@@ -20,6 +20,31 @@ Tabry targets "git-style" CLIs with subcommands, flags, and arguments. Flags can
 
 Please see the [documentation in the Ruby project](https://github.com/evanbattaglia/tabry/blob/master/LANGUAGE_REFERENCE.md) for full language documentation.
 
+# Demo
+
+Let's say you have a script `openfile` that opens files in ~/bin or config files in ~/.config/:
+
+```
+[[ "$1" == "config" ]] && vi ~/.config/"$2"
+[[ "$1" == "bin" ]] && vi ~/bin/"$2"
+```
+
+Putting the following file in ~/.local/share/tabry/openfile.tabry and running `source <(tabry bash)` or `tabry fish | source` will give you completions for the two commands "config" and "bin" and argument completions for the files in those directories.
+
+```
+sub config "open config file from ~/.config/*" {
+  arg { opts shell "cd ~/.config/ && ls" }
+}
+sub bin "open a file in ~/bin directory" {
+  arg { opts shell "cd ~/bin && ls" }
+}
+```
+
+Demo gif:
+![Demo gif](./doc/demo.gif)
+
+The shell command in `opts shell` can of course be much more complicated things including piplines and text manipulation, it just needs to return a newline-separated list of options.
+
 # Installation
 
 ## Installing the binary
