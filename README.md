@@ -10,7 +10,7 @@ sub insert {
 }
 
 sub show {
-  arg old-path {
+  arg pass-name {
     opts shell "cd ~/.password-store && find -name '*.gpg' | sed 's/.gpg$//'"
   }
 }
