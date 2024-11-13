@@ -12,6 +12,7 @@
         let
           pkgs = nixpkgs.legacyPackages."${system}";
           tabry = pkgs.callPackage ./default.nix {};
+          tabryHelpers = pkgs.callPackage ./nix/tabry-helpers.nix {};
         in {
           packages = {
             default = tabry;
@@ -23,6 +24,7 @@
               rustc
             ];
           };
+          helpers = tabryHelpers;
         }
     ) // {
       homeModules = {

@@ -24,6 +24,10 @@ enum Subcommands {
         #[arg(index = 1)]
         /// Import path (colon-separated)
         import_path: Option<String>,
+
+        #[arg(long)]
+        /// Unique function ID (useful for making sure multiple tabry versions don't conflict)
+        uniq_fn_id: Option<String>,
     },
 
     /// Output completion script for zsh
@@ -38,6 +42,10 @@ enum Subcommands {
         #[arg(index = 1)]
         /// Import path (colon-separated)
         import_path: Option<String>,
+
+        #[arg(long)]
+        /// Unique function ID (useful for making sure multiple tabry versions don't conflict)
+        uniq_fn_id: Option<String>,
     },
 
     /// Output completion script for fish
@@ -52,6 +60,10 @@ enum Subcommands {
         #[arg(index = 1)]
         /// Import path (colon-separated)
         import_path: Option<String>,
+
+        #[arg(long)]
+        /// Unique function ID (useful for making sure multiple tabry versions don't conflict)
+        uniq_fn_id: Option<String>,
     },
 
     /// List commands for which there is a .tabry/.json file in TABRY_IMPORT_PATH
@@ -91,15 +103,18 @@ fn main() -> Result<()> {
         Bash {
             import_path,
             no_auto,
-        } => bash(import_path.as_deref(), no_auto),
+            uniq_fn_id
+        } => bash(import_path.as_deref(), no_auto, uniq_fn_id.as_deref()),
         Zsh {
             import_path,
             no_auto,
-        } => zsh(import_path.as_deref(), no_auto),
+            uniq_fn_id
+        } => zsh(import_path.as_deref(), no_auto, uniq_fn_id.as_deref()),
         Fish {
             import_path,
             no_auto,
-        } => fish(import_path.as_deref(), no_auto),
+            uniq_fn_id
+        } => fish(import_path.as_deref(), no_auto, uniq_fn_id.as_deref()),
     }
     Ok(())
 }
