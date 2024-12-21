@@ -9,6 +9,7 @@ in {
       let
         cmd = builtins.replaceStrings [".tabry"] [""] (builtins.baseNameOf tabryFile);
         compiledTabryFile = tabryLang.compileTabryFile tabryFile;
+        formatPackageName = name: lib.toUpper(builtins.replaceStrings ["-" "."] ["_" "_"] name);
       in stdenv.mkDerivation {
         name = "${package.name}-with-tabry";
         nativeBuildInputs = [ installShellFiles ];
@@ -18,17 +19,17 @@ in {
           cp -R ${package}/bin $out/
 
           ${tabry}/bin/tabry bash ${compiledTabryFile} \
-            --uniq-fn-id _NIX_${lib.toUpper package.name} >> ${cmd}.bash
+            --uniq-fn-id _NIX_${formatPackageName package.name} >> ${cmd}.bash
 
           installShellCompletion ${cmd}.bash
 
           ${tabry}/bin/tabry zsh ${compiledTabryFile} \
-            --uniq-fn-id _NIX_${lib.toUpper package.name} >> ${cmd}.zsh
+            --uniq-fn-id _NIX_${formatPackageName package.name} >> ${cmd}.zsh
 
           installShellCompletion ${cmd}.zsh
 
           ${tabry}/bin/tabry fish ${compiledTabryFile} \
-            --uniq-fn-id _NIX_${lib.toUpper package.name} >> ${cmd}.fish
+            --uniq-fn-id _NIX_${formatPackageName package.name} >> ${cmd}.fish
 
           installShellCompletion ${cmd}.fish
         '';
