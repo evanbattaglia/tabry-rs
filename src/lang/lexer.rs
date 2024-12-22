@@ -18,7 +18,7 @@ pub enum Token<'a> {
     String(String),
 }
 
-impl<'a> Token<'a> {
+impl Token<'_> {
     pub fn is_identifier(&self, s: &str) -> bool {
         match self {
             Token::Identifier(id) => *id == s,

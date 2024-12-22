@@ -1,7 +1,7 @@
-use crate::core::types::*;
+//! Code for token matching that depends only on the type.
+//! Used by the machine, broken out to help keep machine smaller.
 
-/// Code for token matching that depends only on the type.
-/// Used by the machine, broken out to help keep machine smaller.
+use crate::core::types::*;
 
 pub trait TokenMatching {
     fn match_token(&self, token: &str) -> bool;

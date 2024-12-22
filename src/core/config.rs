@@ -47,7 +47,7 @@ impl TabryConf {
         sub_names_vec: &Vec<String>,
     ) -> Result<&TabryConcreteSub, TabryConfError> {
         let subs = self.dig_subs(sub_names_vec)?;
-        return Ok(subs.last().unwrap());
+        Ok(subs.last().unwrap())
     }
 
     // TODO switch to iterator without intermediate Vec
@@ -77,7 +77,7 @@ impl TabryConf {
         subs: &'a [TabrySub],
         name: &String,
         check_aliases: bool,
-    ) -> Result<Option<&TabryConcreteSub>, TabryConfError> {
+    ) -> Result<Option<&'a TabryConcreteSub>, TabryConfError> {
         let concrete_subs: Vec<&TabryConcreteSub> = self.flatten_subs(subs)?;
 
         for sub in concrete_subs {
@@ -115,7 +115,7 @@ impl TabryConf {
     pub fn flatten_subs<'a>(
         &'a self,
         subs: &'a [TabrySub],
-    ) -> Result<Vec<&TabryConcreteSub>, TabryConfError> {
+    ) -> Result<Vec<&'a TabryConcreteSub>, TabryConfError> {
         let vecofvecs = subs
             .iter()
             .map(|sub| match sub {
@@ -143,7 +143,7 @@ impl TabryConf {
     pub fn expand_flags<'a>(
         &'a self,
         flags: &'a [TabryFlag],
-    ) -> Box<dyn Iterator<Item = &TabryConcreteFlag> + 'a> {
+    ) -> Box<dyn Iterator<Item = &'a TabryConcreteFlag> + 'a> {
         let iter = flags.iter().flat_map(|flag| match flag {
             TabryFlag::TabryIncludeFlag { include } => {
                 // TODO: bubble up error instead of unwrap (use get_arg_include)
@@ -159,7 +159,7 @@ impl TabryConf {
     pub fn expand_args<'a>(
         &'a self,
         args: &'a [TabryArg],
-    ) -> Box<dyn Iterator<Item = &TabryConcreteArg> + 'a> {
+    ) -> Box<dyn Iterator<Item = &'a TabryConcreteArg> + 'a> {
         let iter = args.iter().flat_map(|arg| match arg {
             TabryArg::TabryIncludeArg { include } => {
                 // TODO: bubble up error instead of unwrap (use get_arg_include)
