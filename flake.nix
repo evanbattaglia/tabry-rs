@@ -22,6 +22,7 @@
               rustfmt
               cargo
               rustc
+              clippy
             ];
           };
           helpers = tabryHelpers;
