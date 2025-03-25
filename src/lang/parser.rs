@@ -126,7 +126,14 @@ pub struct TitleStatement {
 }
 
 fn parse_title_statement(i: &mut &[Token]) -> PResult<TitleStatement> {
-    let mut parser = preceded(Token::Identifier("title"), parse_string_literal);
+    let mut parser = preceded(
+        Token::Identifier("title"),
+        alt((
+            parse_string_literal,
+            parse_identifier.map(|s| s.to_owned())
+        ))
+    );
+
     let title = parser.parse_next(i)?;
     Ok(TitleStatement { title })
 }
