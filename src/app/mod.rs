@@ -33,7 +33,9 @@ fn print_options(
 
     for opt in &opts.options {
         match opt.desc.as_ref() {
-            Some(desc) => println!("{}	{}", opt.value, desc),
+            // fish completion is line-oriented and uses a tab to separate value
+            // from description, so only the first line of the description is usable
+            Some(desc) => println!("{}	{}", opt.value, desc.lines().next().unwrap_or("")),
             None => println!("{}", opt.value),
         }
     }
